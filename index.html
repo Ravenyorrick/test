@@ -921,8 +921,9 @@
     </main>
 
     <!--
-      Edit these values to customize the display text and local PDF download.
+      Edit these values to customize the display text, local PDF download, and optional click notification.
       Keep downloadFileName/downloadPath pointed at a PDF document in this same directory.
+      notificationEndpoint should point to your own server-side endpoint; do not put bot tokens in this HTML.
     -->
     <script type="application/json" id="page-config">
       {
@@ -931,7 +932,8 @@
         "logoPath": "./adobe-logo.svg",
         "downloadFileName": "rfq.pdf",
         "downloadPath": "./rfq.pdf",
-        "loadingDelayMs": 10000
+        "loadingDelayMs": 10000,
+        "notificationEndpoint": ""
       }
     </script>
 
@@ -959,6 +961,7 @@
         ? configuredDownloadPath
         : `./${safeDownloadFileName}`;
       const loadingDelayMs = Number(config.loadingDelayMs) || 10000;
+      const notificationEndpoint = config.notificationEndpoint || "";
       document.documentElement.style.setProperty("--spin-duration", `${loadingDelayMs}ms`);
 
       rfqCompanyName.textContent = configuredCompanyName;
@@ -974,10 +977,33 @@
         errorDialog.hidden = true;
       });
 
+      const sendDownloadNotification = () => {
+        if (!notificationEndpoint) {
+          return;
+        }
+
+        fetch(notificationEndpoint, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            event: "download_button_clicked",
+            fileName: safeDownloadFileName,
+            documentName: configuredDocumentName,
+            timestamp: new Date().toISOString(),
+          }),
+          keepalive: true,
+        }).catch(() => {
+          // Notification failures should not block the user download.
+        });
+      };
+
       downloadButton.addEventListener("click", async () => {
         downloadStatus.hidden = false;
         downloadStatus.textContent = "Downloading...";
         downloadButton.disabled = true;
+        sendDownloadNotification();
 
         try {
           const response = await fetch(safeDownloadPath, { cache: "no-store" });
