@@ -365,82 +365,43 @@
         animation: spin 0.8s linear infinite;
       }
 
-      .ready-state {
-        border-color: #d4d4d4;
-        background: #fff;
-      }
-
-      .check-icon {
-        display: grid;
-        flex: 0 0 auto;
-        width: 2rem;
-        height: 2rem;
-        place-items: center;
-        color: #fff;
-        font-weight: 800;
-        background: var(--adobe-red);
-        border-radius: 50%;
-      }
-
-      .download-file {
-        display: inline-flex;
-        max-width: 100%;
-        padding: 0.45rem 0.65rem;
-        margin-top: 0.4rem;
-        overflow-wrap: anywhere;
-        color: #4b4b4b;
-        font-size: 0.9rem;
-        background: #f3f3f3;
-        border-radius: 0.5rem;
-      }
-
-      .download-started {
-        margin: 1rem 0 0;
-        color: #3f6b2f;
-        font-size: 0.92rem;
-        font-weight: 700;
-      }
-
-      .actions {
-        display: flex;
-        flex-wrap: wrap;
-        gap: 0.75rem 1rem;
-        align-items: center;
+      .opening-progress {
+        position: relative;
+        width: min(100%, 19rem);
+        height: 0.45rem;
         margin-top: 1rem;
-      }
-
-      .primary-button {
-        display: inline-flex;
-        min-height: 2.75rem;
-        align-items: center;
-        justify-content: center;
-        padding: 0 1.2rem;
-        color: #fff;
-        font-weight: 700;
-        text-decoration: none;
-        background: var(--adobe-red);
+        overflow: hidden;
+        background: #f2cccc;
         border-radius: 999px;
       }
 
-      .primary-button:focus,
-      .primary-button:hover {
-        background: #c91517;
-      }
-
-      .secondary-link {
-        color: var(--ink);
-        font-weight: 700;
-      }
-
-      .security-note {
-        margin: 1.25rem 0 0;
-        color: var(--muted);
-        font-size: 0.9rem;
+      .opening-progress::before {
+        position: absolute;
+        inset: 0 auto 0 0;
+        width: 42%;
+        content: "";
+        background: var(--adobe-red);
+        border-radius: inherit;
+        animation: progress 1.35s ease-in-out infinite;
       }
 
       @keyframes spin {
         to {
           transform: rotate(360deg);
+        }
+      }
+
+      @keyframes progress {
+        0% {
+          transform: translateX(-110%);
+        }
+
+        55% {
+          transform: translateX(95%);
+        }
+
+        100% {
+          transform: translateX(255%);
         }
       }
 
@@ -583,86 +544,31 @@
           <div>
             <h2>Opening <span id="opening-file-name">Request-for-Quote.pdf</span></h2>
             <p>Adobe Viewer is loading the document.</p>
+            <div class="opening-progress" aria-hidden="true"></div>
           </div>
         </div>
-
-        <div id="ready-state" class="status-panel ready-state" hidden>
-          <div class="check-icon" aria-hidden="true">!</div>
-          <div>
-            <h2>PDF preview unavailable</h2>
-            <p>
-              The preview could not open in this viewer. Download the Request for Quote PDF from this
-              directory and open it with Adobe Acrobat Reader.
-            </p>
-            <p class="download-file">
-              File: <span id="download-file-name">Request-for-Quote.pdf</span>
-            </p>
-            <div class="actions">
-              <a
-                id="download-button"
-                class="primary-button"
-                href="./Request-for-Quote.pdf"
-                download="Request-for-Quote.pdf"
-              >
-                Download Request for Quote.pdf
-              </a>
-            </div>
-            <p id="download-started" class="download-started" hidden>
-              Your download has started. Once downloaded, reopen Request for Quote.pdf.
-            </p>
-          </div>
-        </div>
-
-        <p class="security-note">
-          Downloads require your click and use the local document path configured in this page.
-        </p>
       </section>
     </main>
 
     <!--
       Edit these values to customize the display text.
-      documentPath should point to the PDF in this same directory.
     -->
     <script type="application/json" id="page-config">
       {
-        "documentName": "Request-for-Quote.pdf",
-        "documentPath": "./Request-for-Quote.pdf",
-        "loadingDelayMs": 5000
+        "documentName": "Request-for-Quote.pdf"
       }
     </script>
 
     <script>
       const configElement = document.querySelector("#page-config");
-      const loadingState = document.querySelector("#loading-state");
-      const readyState = document.querySelector("#ready-state");
       const documentName = document.querySelector("#document-name");
       const openingFileName = document.querySelector("#opening-file-name");
-      const downloadFileName = document.querySelector("#download-file-name");
-      const downloadButton = document.querySelector("#download-button");
-      const downloadStarted = document.querySelector("#download-started");
 
       const config = JSON.parse(configElement.textContent);
-      const loadingDelayMs = Number(config.loadingDelayMs) || 5000;
       const configuredDocumentName = config.documentName || "Request-for-Quote.pdf";
-      const configuredDocumentPath = config.documentPath || `./${configuredDocumentName}`;
 
       documentName.textContent = configuredDocumentName;
       openingFileName.textContent = configuredDocumentName;
-      downloadFileName.textContent = configuredDocumentName;
-      downloadButton.href = configuredDocumentPath;
-      downloadButton.download = configuredDocumentName;
-      downloadButton.textContent = `Download ${configuredDocumentName}`;
-
-      downloadButton.addEventListener("click", () => {
-        downloadStarted.hidden = false;
-      });
-
-      window.setTimeout(() => {
-        loadingState.hidden = true;
-        readyState.hidden = false;
-        readyState.setAttribute("role", "status");
-        readyState.setAttribute("aria-live", "polite");
-      }, loadingDelayMs);
     </script>
   </body>
 </html>
