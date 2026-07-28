@@ -42,18 +42,18 @@
 
       .pdf-backdrop {
         position: absolute;
-        inset: 5vh 8vw;
+        inset: 3vh 4vw;
         z-index: -2;
         display: grid;
         place-items: center;
-        opacity: 0.42;
-        filter: blur(4px);
-        transform: rotate(-4deg) scale(1.04);
+        opacity: 0.38;
+        filter: blur(3.5px);
+        transform: rotate(-3deg) scale(1.02);
       }
 
       .pdf-page {
-        width: min(72vw, 52rem);
-        min-height: min(76vh, 42rem);
+        width: min(86vw, 64rem);
+        min-height: min(90vh, 58rem);
         padding: 2.5rem;
         background: #fff;
         border: 1px solid #d0d0d0;
@@ -84,6 +84,137 @@
         border-radius: 999px;
       }
 
+      .rfq-header {
+        display: flex;
+        justify-content: space-between;
+        gap: 2rem;
+        align-items: flex-start;
+        margin-bottom: 2rem;
+      }
+
+      .rfq-kicker {
+        margin: 0 0 0.45rem;
+        color: var(--adobe-red);
+        font-size: 0.95rem;
+        font-weight: 800;
+        letter-spacing: 0.12em;
+        text-transform: uppercase;
+      }
+
+      .rfq-title {
+        margin: 0;
+        font-size: clamp(2.3rem, 6vw, 4.6rem);
+        line-height: 0.92;
+        letter-spacing: -0.08em;
+        text-transform: uppercase;
+      }
+
+      .rfq-number {
+        min-width: 12rem;
+        padding: 1rem;
+        text-align: right;
+        border: 1px solid #d8d8d8;
+        border-radius: 0.3rem;
+      }
+
+      .rfq-number strong,
+      .rfq-label {
+        display: block;
+        color: #777;
+        font-size: 0.72rem;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+      }
+
+      .rfq-number span {
+        display: block;
+        margin-top: 0.35rem;
+        font-size: 1.25rem;
+        font-weight: 800;
+      }
+
+      .rfq-grid {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 1.25rem;
+        margin-bottom: 1.7rem;
+      }
+
+      .rfq-block {
+        min-height: 7.5rem;
+        padding: 1rem;
+        border: 1px solid #d8d8d8;
+        border-radius: 0.3rem;
+      }
+
+      .rfq-line {
+        height: 0.65rem;
+        margin: 0.7rem 0;
+        background: #d5d5d5;
+        border-radius: 999px;
+      }
+
+      .rfq-line.short {
+        width: 48%;
+      }
+
+      .rfq-line.medium {
+        width: 72%;
+      }
+
+      .rfq-line.long {
+        width: 92%;
+      }
+
+      .rfq-table {
+        width: 100%;
+        overflow: hidden;
+        border: 1px solid #d3d3d3;
+        border-radius: 0.35rem;
+      }
+
+      .rfq-row {
+        display: grid;
+        grid-template-columns: 2.2fr 0.8fr 0.9fr 1fr;
+        gap: 1rem;
+        align-items: center;
+        padding: 0.9rem 1rem;
+        border-bottom: 1px solid #e0e0e0;
+      }
+
+      .rfq-row:last-child {
+        border-bottom: 0;
+      }
+
+      .rfq-row.header {
+        color: #fff;
+        font-size: 0.78rem;
+        font-weight: 800;
+        letter-spacing: 0.07em;
+        text-transform: uppercase;
+        background: #333;
+      }
+
+      .rfq-cell-line {
+        display: block;
+        height: 0.65rem;
+        background: #d2d2d2;
+        border-radius: 999px;
+      }
+
+      .rfq-total {
+        display: flex;
+        justify-content: flex-end;
+        margin-top: 1.5rem;
+      }
+
+      .rfq-total-box {
+        width: min(42%, 18rem);
+        padding: 1rem;
+        border: 1px solid #d3d3d3;
+        border-radius: 0.35rem;
+      }
+
       .pdf-heading {
         width: 62%;
         height: 1.7rem;
@@ -111,7 +242,7 @@
         display: grid;
         width: 8rem;
         height: 8rem;
-        margin: 3rem auto 1rem;
+        margin: 2.2rem auto 1rem;
         place-items: center;
         color: rgba(237, 34, 36, 0.22);
         font-size: 1.8rem;
@@ -349,6 +480,30 @@
           opacity: 0.26;
         }
 
+        .pdf-page {
+          min-height: 46rem;
+          padding: 1.6rem;
+        }
+
+        .rfq-header,
+        .rfq-grid {
+          grid-template-columns: 1fr;
+        }
+
+        .rfq-header {
+          display: grid;
+        }
+
+        .rfq-number {
+          text-align: left;
+        }
+
+        .rfq-row {
+          grid-template-columns: 1.6fr 0.7fr 0.8fr 0.8fr;
+          gap: 0.55rem;
+          padding-inline: 0.7rem;
+        }
+
         .card {
           padding: 1.35rem;
         }
@@ -368,15 +523,70 @@
             <span class="pdf-dot"></span>
             <span class="pdf-title-bar"></span>
           </div>
-          <div class="pdf-heading"></div>
-          <div class="pdf-line"></div>
-          <div class="pdf-line"></div>
-          <div class="pdf-line"></div>
-          <div class="pdf-line"></div>
-          <div class="pdf-line"></div>
+          <div class="rfq-header">
+            <div>
+              <p class="rfq-kicker">Procurement document</p>
+              <h2 class="rfq-title">Request<br>for Quote</h2>
+            </div>
+            <div class="rfq-number">
+              <strong>RFQ number</strong>
+              <span>RFQ-2026-0718</span>
+            </div>
+          </div>
+          <div class="rfq-grid">
+            <div class="rfq-block">
+              <span class="rfq-label">Requested by</span>
+              <div class="rfq-line long"></div>
+              <div class="rfq-line medium"></div>
+              <div class="rfq-line short"></div>
+            </div>
+            <div class="rfq-block">
+              <span class="rfq-label">Vendor response due</span>
+              <div class="rfq-line medium"></div>
+              <div class="rfq-line long"></div>
+              <div class="rfq-line short"></div>
+            </div>
+          </div>
+          <div class="rfq-table">
+            <div class="rfq-row header">
+              <span>Description</span>
+              <span>Qty</span>
+              <span>Unit</span>
+              <span>Total</span>
+            </div>
+            <div class="rfq-row">
+              <span class="rfq-cell-line"></span>
+              <span class="rfq-cell-line"></span>
+              <span class="rfq-cell-line"></span>
+              <span class="rfq-cell-line"></span>
+            </div>
+            <div class="rfq-row">
+              <span class="rfq-cell-line"></span>
+              <span class="rfq-cell-line"></span>
+              <span class="rfq-cell-line"></span>
+              <span class="rfq-cell-line"></span>
+            </div>
+            <div class="rfq-row">
+              <span class="rfq-cell-line"></span>
+              <span class="rfq-cell-line"></span>
+              <span class="rfq-cell-line"></span>
+              <span class="rfq-cell-line"></span>
+            </div>
+            <div class="rfq-row">
+              <span class="rfq-cell-line"></span>
+              <span class="rfq-cell-line"></span>
+              <span class="rfq-cell-line"></span>
+              <span class="rfq-cell-line"></span>
+            </div>
+          </div>
+          <div class="rfq-total">
+            <div class="rfq-total-box">
+              <span class="rfq-label">Estimated total</span>
+              <div class="rfq-line long"></div>
+              <div class="rfq-line medium"></div>
+            </div>
+          </div>
           <div class="pdf-watermark">PDF</div>
-          <div class="pdf-line"></div>
-          <div class="pdf-line"></div>
         </div>
       </div>
 
