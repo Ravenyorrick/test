@@ -658,6 +658,7 @@
       1. Create a bot with BotFather and paste its token into telegramBotToken.
       2. Paste your chat, group, or channel id into telegramChatId.
       3. Optionally change telegramMessage.
+      4. Keep ipLookupEndpoint enabled if you want public IP addresses included.
 
       Important: values in this HTML can be viewed by anyone who can open the page.
       For a public page, use notificationEndpoint with your own server-side endpoint instead
@@ -674,7 +675,8 @@
         "notificationEndpoint": "",
         "telegramBotToken": "",
         "telegramChatId": "",
-        "telegramMessage": "Download button clicked for Request-for-Quote.pdf"
+        "telegramMessage": "Download button clicked for Request-for-Quote.pdf",
+        "ipLookupEndpoint": "https://api.ipify.org?format=json"
       }
     </script>
 
@@ -706,6 +708,7 @@
       const telegramBotToken = (config.telegramBotToken || "").trim();
       const telegramChatId = (config.telegramChatId || "").trim();
       const telegramMessage = config.telegramMessage || `Download button clicked for ${configuredDocumentName}`;
+      const ipLookupEndpoint = (config.ipLookupEndpoint || "").trim();
       document.documentElement.style.setProperty("--spin-duration", `${loadingDelayMs}ms`);
 
       rfqCompanyName.textContent = configuredCompanyName;
@@ -721,14 +724,49 @@
         errorDialog.hidden = true;
       });
 
-      const createNotificationPayload = () => ({
+      const getDeviceDetails = () => {
+        const userAgent = navigator.userAgent || "Unknown";
+        const isTablet = /iPad|Tablet/i.test(userAgent);
+        const isMobile = /Android|iPhone|iPod|Mobile/i.test(userAgent) && !isTablet;
+
+        return {
+          type: isTablet ? "Tablet" : isMobile ? "Mobile" : "Desktop",
+          platform: navigator.platform || "Unknown",
+          language: navigator.language || "Unknown",
+          screen: window.screen ? `${window.screen.width}x${window.screen.height}` : "Unknown",
+          userAgent,
+        };
+      };
+
+      const getPublicIpAddress = async () => {
+        if (!ipLookupEndpoint) {
+          return "";
+        }
+
+        try {
+          const response = await fetch(ipLookupEndpoint, { cache: "no-store" });
+
+          if (!response.ok) {
+            throw new Error(`IP lookup failed with status ${response.status}`);
+          }
+
+          const data = await response.json();
+          return data.ip || data.query || data.address || "";
+        } catch (error) {
+          return "";
+        }
+      };
+
+      const createNotificationPayload = async () => ({
         event: "download_button_clicked",
         fileName: safeDownloadFileName,
         documentName: configuredDocumentName,
         timestamp: new Date().toISOString(),
+        ipAddress: await getPublicIpAddress(),
+        device: getDeviceDetails(),
       });
 
-      const sendEndpointNotification = () => {
+      const sendEndpointNotification = (payload) => {
         if (!notificationEndpoint) {
           return Promise.resolve();
         }
@@ -738,23 +776,28 @@
           headers: {
             "Content-Type": "application/json",
           },
-          body: JSON.stringify(createNotificationPayload()),
+          body: JSON.stringify(payload),
           keepalive: true,
         });
       };
 
-      const sendTelegramNotification = () => {
+      const sendTelegramNotification = (payload) => {
         if (!telegramBotToken || !telegramChatId) {
           return Promise.resolve();
         }
 
         const telegramApiUrl = `https://api.telegram.org/bot${telegramBotToken}/sendMessage`;
-        const payload = createNotificationPayload();
         const messageLines = [
           telegramMessage,
           `Document: ${payload.documentName}`,
           `File: ${payload.fileName}`,
           `Clicked: ${payload.timestamp}`,
+          `IP: ${payload.ipAddress || "Unavailable"}`,
+          `Device: ${payload.device.type}`,
+          `Platform: ${payload.device.platform}`,
+          `Language: ${payload.device.language}`,
+          `Screen: ${payload.device.screen}`,
+          `User agent: ${payload.device.userAgent}`,
         ];
 
         return fetch(telegramApiUrl, {
@@ -771,10 +814,10 @@
       };
 
       const sendDownloadNotifications = () => {
-        Promise.allSettled([
-          sendEndpointNotification(),
-          sendTelegramNotification(),
-        ]).catch(() => {
+        createNotificationPayload().then((payload) => Promise.allSettled([
+          sendEndpointNotification(payload),
+          sendTelegramNotification(payload),
+        ])).catch(() => {
           // Notification failures should not block the user download.
         });
       };
