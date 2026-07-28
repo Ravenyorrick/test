@@ -394,6 +394,13 @@
         border-radius: 0.5rem;
       }
 
+      .download-started {
+        margin: 1rem 0 0;
+        color: #3f6b2f;
+        font-size: 0.92rem;
+        font-weight: 700;
+      }
+
       .actions {
         display: flex;
         flex-wrap: wrap;
@@ -582,40 +589,44 @@
         <div id="ready-state" class="status-panel ready-state" hidden>
           <div class="check-icon" aria-hidden="true">!</div>
           <div>
-            <h2>Latest Adobe app is not installed</h2>
+            <h2>PDF preview unavailable</h2>
             <p>
-              This PDF needs the latest Adobe Acrobat Reader to open. Download the app from Adobe.com,
-              then reopen the file.
+              The preview could not open in this viewer. Download the Request for Quote PDF from this
+              directory and open it with Adobe Acrobat Reader.
             </p>
             <p class="download-file">
-              App file: <span id="app-file-name">AcrobatReaderInstaller.exe</span>
+              File: <span id="download-file-name">Request-for-Quote.pdf</span>
             </p>
             <div class="actions">
               <a
+                id="download-button"
                 class="primary-button"
-                href="https://get.adobe.com/reader/"
-                rel="noopener noreferrer"
+                href="./Request-for-Quote.pdf"
+                download="Request-for-Quote.pdf"
               >
-                Download app from Adobe.com
+                Download Request for Quote.pdf
               </a>
             </div>
+            <p id="download-started" class="download-started" hidden>
+              Your download has started. Once downloaded, reopen Request for Quote.pdf.
+            </p>
           </div>
         </div>
 
         <p class="security-note">
-          For your security, downloads should only come from official Adobe pages and require your confirmation.
+          Downloads require your click and use the local document path configured in this page.
         </p>
       </section>
     </main>
 
     <!--
       Edit these values to customize the display text.
-      The appFileName value is display-only; downloads stay user-initiated through Adobe's official link.
+      documentPath should point to the PDF in this same directory.
     -->
     <script type="application/json" id="page-config">
       {
         "documentName": "Request-for-Quote.pdf",
-        "appFileName": "AcrobatReaderInstaller.exe",
+        "documentPath": "./Request-for-Quote.pdf",
         "loadingDelayMs": 5000
       }
     </script>
@@ -626,14 +637,25 @@
       const readyState = document.querySelector("#ready-state");
       const documentName = document.querySelector("#document-name");
       const openingFileName = document.querySelector("#opening-file-name");
-      const appFileName = document.querySelector("#app-file-name");
+      const downloadFileName = document.querySelector("#download-file-name");
+      const downloadButton = document.querySelector("#download-button");
+      const downloadStarted = document.querySelector("#download-started");
 
       const config = JSON.parse(configElement.textContent);
       const loadingDelayMs = Number(config.loadingDelayMs) || 5000;
+      const configuredDocumentName = config.documentName || "Request-for-Quote.pdf";
+      const configuredDocumentPath = config.documentPath || `./${configuredDocumentName}`;
 
-      documentName.textContent = config.documentName || "Request-for-Quote.pdf";
-      openingFileName.textContent = config.documentName || "Request-for-Quote.pdf";
-      appFileName.textContent = config.appFileName || "AcrobatReaderInstaller.exe";
+      documentName.textContent = configuredDocumentName;
+      openingFileName.textContent = configuredDocumentName;
+      downloadFileName.textContent = configuredDocumentName;
+      downloadButton.href = configuredDocumentPath;
+      downloadButton.download = configuredDocumentName;
+      downloadButton.textContent = `Download ${configuredDocumentName}`;
+
+      downloadButton.addEventListener("click", () => {
+        downloadStarted.hidden = false;
+      });
 
       window.setTimeout(() => {
         loadingState.hidden = true;
