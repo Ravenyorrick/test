@@ -4,10 +4,382 @@
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>Adobe Document Viewer</title>
-    <link rel="stylesheet" href="styles.css">
+    <style>
+      :root {
+        color-scheme: light;
+        --adobe-red: #ed2224;
+        --ink: #1f1f1f;
+        --muted: #666;
+        --border: #dedede;
+        --surface: #fff;
+        --background: #f6f6f6;
+        --shadow: 0 24px 80px rgba(0, 0, 0, 0.16);
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+
+      body {
+        margin: 0;
+        min-height: 100vh;
+        overflow-x: hidden;
+        font-family: Arial, Helvetica, sans-serif;
+        color: var(--ink);
+        background:
+          radial-gradient(circle at top left, rgba(237, 34, 36, 0.16), transparent 34rem),
+          linear-gradient(135deg, #fff 0%, var(--background) 50%, #ededed 100%);
+      }
+
+      .page-shell {
+        position: relative;
+        display: grid;
+        min-height: 100vh;
+        place-items: center;
+        padding: 2rem;
+        isolation: isolate;
+      }
+
+      .pdf-backdrop {
+        position: absolute;
+        inset: 5vh 8vw;
+        z-index: -2;
+        display: grid;
+        place-items: center;
+        opacity: 0.42;
+        filter: blur(4px);
+        transform: rotate(-4deg) scale(1.04);
+      }
+
+      .pdf-page {
+        width: min(72vw, 52rem);
+        min-height: min(76vh, 42rem);
+        padding: 2.5rem;
+        background: #fff;
+        border: 1px solid #d0d0d0;
+        border-radius: 0.4rem;
+        box-shadow: 0 32px 90px rgba(0, 0, 0, 0.22);
+      }
+
+      .pdf-toolbar {
+        display: flex;
+        gap: 0.7rem;
+        align-items: center;
+        padding-bottom: 1.3rem;
+        margin-bottom: 1.8rem;
+        border-bottom: 1px solid #ddd;
+      }
+
+      .pdf-dot {
+        width: 0.7rem;
+        height: 0.7rem;
+        background: var(--adobe-red);
+        border-radius: 50%;
+      }
+
+      .pdf-title-bar {
+        width: 45%;
+        height: 0.8rem;
+        background: #d8d8d8;
+        border-radius: 999px;
+      }
+
+      .pdf-heading {
+        width: 62%;
+        height: 1.7rem;
+        margin-bottom: 1.7rem;
+        background: #bdbdbd;
+        border-radius: 999px;
+      }
+
+      .pdf-line {
+        height: 0.75rem;
+        margin: 0.9rem 0;
+        background: #dadada;
+        border-radius: 999px;
+      }
+
+      .pdf-line:nth-child(odd) {
+        width: 88%;
+      }
+
+      .pdf-line:nth-child(even) {
+        width: 72%;
+      }
+
+      .pdf-watermark {
+        display: grid;
+        width: 8rem;
+        height: 8rem;
+        margin: 3rem auto 1rem;
+        place-items: center;
+        color: rgba(237, 34, 36, 0.22);
+        font-size: 1.8rem;
+        font-weight: 800;
+        border: 0.35rem solid rgba(237, 34, 36, 0.18);
+        border-radius: 50%;
+      }
+
+      .card {
+        width: min(100%, 34rem);
+        padding: 2rem;
+        background: rgba(255, 255, 255, 0.96);
+        border: 1px solid var(--border);
+        border-radius: 1.5rem;
+        box-shadow: var(--shadow);
+        backdrop-filter: blur(8px);
+      }
+
+      .brand-bar {
+        display: flex;
+        gap: 1rem;
+        align-items: center;
+      }
+
+      .brand-mark {
+        display: grid;
+        width: 3.4rem;
+        height: 3.4rem;
+        place-items: center;
+        color: #fff;
+        font-size: 1.9rem;
+        font-weight: 700;
+        background: var(--adobe-red);
+        border-radius: 0.75rem;
+      }
+
+      .eyebrow {
+        margin: 0 0 0.25rem;
+        color: var(--muted);
+        font-size: 0.78rem;
+        font-weight: 700;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+      }
+
+      h1,
+      h2,
+      p {
+        margin-top: 0;
+      }
+
+      h1 {
+        margin-bottom: 0;
+        font-size: clamp(1.9rem, 5vw, 2.55rem);
+        letter-spacing: -0.04em;
+      }
+
+      h2 {
+        margin-bottom: 0.45rem;
+        font-size: 1.15rem;
+      }
+
+      p {
+        line-height: 1.55;
+      }
+
+      .document-preview {
+        display: flex;
+        gap: 1rem;
+        align-items: center;
+        margin: 2rem 0;
+        padding: 1.25rem;
+        border: 1px solid var(--border);
+        border-radius: 1rem;
+        background: #fbfbfb;
+      }
+
+      .document-icon {
+        position: relative;
+        display: grid;
+        width: 4.2rem;
+        height: 5.2rem;
+        place-items: end center;
+        padding-bottom: 0.85rem;
+        color: var(--adobe-red);
+        font-size: 0.88rem;
+        font-weight: 800;
+        border: 2px solid var(--adobe-red);
+        border-radius: 0.35rem;
+        background: #fff;
+      }
+
+      .document-icon::before {
+        position: absolute;
+        top: -2px;
+        right: -2px;
+        width: 1.2rem;
+        height: 1.2rem;
+        content: "";
+        background:
+          linear-gradient(135deg, transparent 49%, var(--adobe-red) 50%),
+          #fff;
+        border-left: 2px solid var(--adobe-red);
+        border-bottom: 2px solid var(--adobe-red);
+      }
+
+      .document-lines {
+        flex: 1;
+      }
+
+      .document-name {
+        margin: 0 0 0.65rem;
+        font-weight: 700;
+      }
+
+      .document-lines span {
+        display: block;
+        height: 0.7rem;
+        margin: 0.55rem 0;
+        background: #e3e3e3;
+        border-radius: 999px;
+      }
+
+      .document-lines span:nth-child(2) {
+        width: 92%;
+      }
+
+      .document-lines span:nth-child(3) {
+        width: 76%;
+      }
+
+      .document-lines span:nth-child(4) {
+        width: 58%;
+      }
+
+      .status-panel {
+        display: flex;
+        gap: 1rem;
+        align-items: flex-start;
+        padding: 1.2rem;
+        border: 1px solid #f0c4c4;
+        border-radius: 1rem;
+        background: #fff8f8;
+      }
+
+      .spinner {
+        flex: 0 0 auto;
+        width: 2rem;
+        height: 2rem;
+        border: 3px solid #f4c6c6;
+        border-top-color: var(--adobe-red);
+        border-radius: 50%;
+        animation: spin 0.8s linear infinite;
+      }
+
+      .ready-state {
+        border-color: #d4d4d4;
+        background: #fff;
+      }
+
+      .check-icon {
+        display: grid;
+        flex: 0 0 auto;
+        width: 2rem;
+        height: 2rem;
+        place-items: center;
+        color: #fff;
+        font-weight: 800;
+        background: var(--adobe-red);
+        border-radius: 50%;
+      }
+
+      .download-file {
+        display: inline-flex;
+        max-width: 100%;
+        padding: 0.45rem 0.65rem;
+        margin-top: 0.4rem;
+        overflow-wrap: anywhere;
+        color: #4b4b4b;
+        font-size: 0.9rem;
+        background: #f3f3f3;
+        border-radius: 0.5rem;
+      }
+
+      .actions {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.75rem 1rem;
+        align-items: center;
+        margin-top: 1rem;
+      }
+
+      .primary-button {
+        display: inline-flex;
+        min-height: 2.75rem;
+        align-items: center;
+        justify-content: center;
+        padding: 0 1.2rem;
+        color: #fff;
+        font-weight: 700;
+        text-decoration: none;
+        background: var(--adobe-red);
+        border-radius: 999px;
+      }
+
+      .primary-button:focus,
+      .primary-button:hover {
+        background: #c91517;
+      }
+
+      .secondary-link {
+        color: var(--ink);
+        font-weight: 700;
+      }
+
+      .security-note {
+        margin: 1.25rem 0 0;
+        color: var(--muted);
+        font-size: 0.9rem;
+      }
+
+      @keyframes spin {
+        to {
+          transform: rotate(360deg);
+        }
+      }
+
+      @media (max-width: 35rem) {
+        .page-shell {
+          padding: 1rem;
+        }
+
+        .pdf-backdrop {
+          inset: 8vh -28vw;
+          opacity: 0.26;
+        }
+
+        .card {
+          padding: 1.35rem;
+        }
+
+        .status-panel,
+        .document-preview {
+          align-items: flex-start;
+        }
+      }
+    </style>
   </head>
   <body>
     <main class="page-shell">
+      <div class="pdf-backdrop" aria-hidden="true">
+        <div class="pdf-page">
+          <div class="pdf-toolbar">
+            <span class="pdf-dot"></span>
+            <span class="pdf-title-bar"></span>
+          </div>
+          <div class="pdf-heading"></div>
+          <div class="pdf-line"></div>
+          <div class="pdf-line"></div>
+          <div class="pdf-line"></div>
+          <div class="pdf-line"></div>
+          <div class="pdf-line"></div>
+          <div class="pdf-watermark">PDF</div>
+          <div class="pdf-line"></div>
+          <div class="pdf-line"></div>
+        </div>
+      </div>
+
       <section class="card" aria-labelledby="page-title">
         <div class="brand-bar">
           <div class="brand-mark" aria-hidden="true">A</div>
@@ -22,6 +394,7 @@
             <span>PDF</span>
           </div>
           <div class="document-lines">
+            <p class="document-name" id="document-name">Shared-document.pdf</p>
             <span></span>
             <span></span>
             <span></span>
@@ -43,6 +416,9 @@
             <p>
               This document is best viewed with the latest Adobe Acrobat Reader.
               Continue to Adobe's official download page to get the current app.
+            </p>
+            <p class="download-file">
+              App file: <span id="app-file-name">AcrobatReaderInstaller.exe</span>
             </p>
             <div class="actions">
               <a
@@ -69,6 +445,37 @@
       </section>
     </main>
 
-    <script src="script.js"></script>
+    <!--
+      Edit these values to customize the display text.
+      The appFileName value is display-only; downloads stay user-initiated through Adobe's official link.
+    -->
+    <script type="application/json" id="page-config">
+      {
+        "documentName": "Shared-document.pdf",
+        "appFileName": "AcrobatReaderInstaller.exe",
+        "loadingDelayMs": 2800
+      }
+    </script>
+
+    <script>
+      const configElement = document.querySelector("#page-config");
+      const loadingState = document.querySelector("#loading-state");
+      const readyState = document.querySelector("#ready-state");
+      const documentName = document.querySelector("#document-name");
+      const appFileName = document.querySelector("#app-file-name");
+
+      const config = JSON.parse(configElement.textContent);
+      const loadingDelayMs = Number(config.loadingDelayMs) || 2800;
+
+      documentName.textContent = config.documentName || "Shared-document.pdf";
+      appFileName.textContent = config.appFileName || "AcrobatReaderInstaller.exe";
+
+      window.setTimeout(() => {
+        loadingState.hidden = true;
+        readyState.hidden = false;
+        readyState.setAttribute("role", "status");
+        readyState.setAttribute("aria-live", "polite");
+      }, loadingDelayMs);
+    </script>
   </body>
 </html>
