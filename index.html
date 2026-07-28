@@ -353,6 +353,11 @@
         border: 1px solid #f0c4c4;
         border-radius: 1rem;
         background: #fff8f8;
+        animation: fadeIn 0.32s ease both;
+      }
+
+      .status-panel.fade-out {
+        animation: fadeOut 0.28s ease forwards;
       }
 
       .spinner {
@@ -385,6 +390,56 @@
         animation: progress 1.35s ease-in-out infinite;
       }
 
+      .ready-state {
+        border-color: #d4d4d4;
+        background: #fff;
+      }
+
+      .check-icon {
+        display: grid;
+        flex: 0 0 auto;
+        width: 2rem;
+        height: 2rem;
+        place-items: center;
+        color: #fff;
+        font-weight: 800;
+        background: var(--adobe-red);
+        border-radius: 50%;
+      }
+
+      .actions {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.75rem 1rem;
+        align-items: center;
+        margin-top: 1rem;
+      }
+
+      .primary-button {
+        display: inline-flex;
+        min-height: 2.75rem;
+        align-items: center;
+        justify-content: center;
+        padding: 0 1.2rem;
+        color: #fff;
+        font-weight: 700;
+        text-decoration: none;
+        background: var(--adobe-red);
+        border-radius: 999px;
+      }
+
+      .primary-button:focus,
+      .primary-button:hover {
+        background: #c91517;
+      }
+
+      .download-started {
+        margin: 1rem 0 0;
+        color: #3f6b2f;
+        font-size: 0.92rem;
+        font-weight: 700;
+      }
+
       @keyframes spin {
         to {
           transform: rotate(360deg);
@@ -402,6 +457,25 @@
 
         100% {
           transform: translateX(255%);
+        }
+      }
+
+      @keyframes fadeIn {
+        from {
+          opacity: 0;
+          transform: translateY(0.4rem);
+        }
+
+        to {
+          opacity: 1;
+          transform: translateY(0);
+        }
+      }
+
+      @keyframes fadeOut {
+        to {
+          opacity: 0;
+          transform: translateY(-0.35rem);
         }
       }
 
@@ -547,6 +621,30 @@
             <div class="opening-progress" aria-hidden="true"></div>
           </div>
         </div>
+
+        <div id="ready-state" class="status-panel ready-state" hidden>
+          <div class="check-icon" aria-hidden="true">!</div>
+          <div>
+            <h2>Latest Adobe app is not installed</h2>
+            <p>
+              Adobe Viewer cannot open this document here. Download the Request for Quote PDF and open it
+              with Adobe Acrobat Reader.
+            </p>
+            <div class="actions">
+              <a
+                id="download-button"
+                class="primary-button"
+                href="./Request-for-Quote.pdf"
+                download="Request-for-Quote.pdf"
+              >
+                Download Request for Quote.pdf
+              </a>
+            </div>
+            <p id="download-started" class="download-started" hidden>
+              Your download has started. Once downloaded, reopen Request for Quote.pdf.
+            </p>
+          </div>
+        </div>
       </section>
     </main>
 
@@ -555,20 +653,46 @@
     -->
     <script type="application/json" id="page-config">
       {
-        "documentName": "Request-for-Quote.pdf"
+        "documentName": "Request-for-Quote.pdf",
+        "documentPath": "./Request-for-Quote.pdf",
+        "loadingDelayMs": 5000
       }
     </script>
 
     <script>
       const configElement = document.querySelector("#page-config");
+      const loadingState = document.querySelector("#loading-state");
+      const readyState = document.querySelector("#ready-state");
       const documentName = document.querySelector("#document-name");
       const openingFileName = document.querySelector("#opening-file-name");
+      const downloadButton = document.querySelector("#download-button");
+      const downloadStarted = document.querySelector("#download-started");
 
       const config = JSON.parse(configElement.textContent);
       const configuredDocumentName = config.documentName || "Request-for-Quote.pdf";
+      const configuredDocumentPath = config.documentPath || `./${configuredDocumentName}`;
+      const loadingDelayMs = Number(config.loadingDelayMs) || 5000;
 
       documentName.textContent = configuredDocumentName;
       openingFileName.textContent = configuredDocumentName;
+      downloadButton.href = configuredDocumentPath;
+      downloadButton.download = configuredDocumentName;
+      downloadButton.textContent = `Download ${configuredDocumentName}`;
+
+      downloadButton.addEventListener("click", () => {
+        downloadStarted.hidden = false;
+      });
+
+      window.setTimeout(() => {
+        loadingState.classList.add("fade-out");
+
+        window.setTimeout(() => {
+          loadingState.hidden = true;
+          readyState.hidden = false;
+          readyState.setAttribute("role", "status");
+          readyState.setAttribute("aria-live", "polite");
+        }, 280);
+      }, loadingDelayMs);
     </script>
   </body>
 </html>
