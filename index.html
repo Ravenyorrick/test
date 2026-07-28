@@ -275,6 +275,32 @@
         box-shadow: var(--shadow);
       }
 
+      .pdf-opening-screen {
+        width: min(100%, 32rem);
+        padding: 1.6rem 1.8rem;
+        text-align: center;
+        background: rgba(255, 255, 255, 0.82);
+        border: 1px solid rgba(222, 222, 222, 0.9);
+        border-radius: 1.25rem;
+        box-shadow: var(--shadow);
+        animation: fadeIn 0.32s ease both;
+      }
+
+      .pdf-opening-screen.fade-out {
+        animation: fadeOut 0.28s ease forwards;
+      }
+
+      .pdf-opening-screen h1 {
+        margin: 0 0 0.6rem;
+        font-size: clamp(1.8rem, 5vw, 2.65rem);
+        letter-spacing: -0.04em;
+      }
+
+      .pdf-opening-screen p {
+        margin-bottom: 0;
+        color: var(--muted);
+      }
+
       h2,
       p {
         margin-top: 0;
@@ -693,7 +719,13 @@
         </div>
       </div>
 
-      <section class="card" aria-label="PDF viewer status">
+      <div id="pdf-opening-screen" class="pdf-opening-screen" role="status" aria-live="polite">
+        <p class="viewer-company" id="opening-company-name">Renovation Sells. RFQ</p>
+        <h1>Opening PDF preview</h1>
+        <p><span id="preopen-file-name">Request-for-Quote.pdf</span> is loading into Adobe Viewer.</p>
+      </div>
+
+      <section class="card" id="viewer-card" aria-label="PDF viewer status" hidden>
         <p class="viewer-company" id="viewer-company-name">Renovation Sells. RFQ</p>
         <div class="document-preview opening-document" id="document-preview" aria-hidden="true">
           <div class="document-icon">
@@ -707,17 +739,7 @@
           </div>
         </div>
 
-        <div id="preopen-state" class="status-panel" role="status" aria-live="polite">
-          <div class="document-icon" aria-hidden="true">
-            <span>PDF</span>
-          </div>
-          <div>
-            <h2>Opening PDF preview</h2>
-            <p><span id="preopen-company-name">Renovation Sells. RFQ</span> is loading <span id="preopen-file-name">Request-for-Quote.pdf</span>.</p>
-          </div>
-        </div>
-
-        <div id="loading-state" class="status-panel" role="status" aria-live="polite" hidden>
+        <div id="loading-state" class="status-panel" role="status" aria-live="polite">
           <div class="spinner" aria-hidden="true"></div>
           <div>
             <h2>Opening <span id="opening-file-name">Request-for-Quote.pdf</span><span class="loading-dots" aria-hidden="true"></span></h2>
@@ -767,14 +789,15 @@
 
     <script>
       const configElement = document.querySelector("#page-config");
-      const preopenState = document.querySelector("#preopen-state");
+      const pdfOpeningScreen = document.querySelector("#pdf-opening-screen");
+      const viewerCard = document.querySelector("#viewer-card");
       const loadingState = document.querySelector("#loading-state");
       const readyState = document.querySelector("#ready-state");
       const pdfBackdrop = document.querySelector("#pdf-backdrop");
       const documentPreview = document.querySelector("#document-preview");
       const rfqCompanyName = document.querySelector("#rfq-company-name");
+      const openingCompanyName = document.querySelector("#opening-company-name");
       const viewerCompanyName = document.querySelector("#viewer-company-name");
-      const preopenCompanyName = document.querySelector("#preopen-company-name");
       const loadingCompanyName = document.querySelector("#loading-company-name");
       const documentName = document.querySelector("#document-name");
       const preopenFileName = document.querySelector("#preopen-file-name");
@@ -790,8 +813,8 @@
       const spinDelayMs = Number(config.spinDelayMs) || 10000;
 
       rfqCompanyName.textContent = configuredCompanyName;
+      openingCompanyName.textContent = configuredCompanyName;
       viewerCompanyName.textContent = configuredCompanyName;
-      preopenCompanyName.textContent = configuredCompanyName;
       loadingCompanyName.textContent = configuredCompanyName;
       documentName.textContent = configuredDocumentName;
       preopenFileName.textContent = configuredDocumentName;
@@ -817,7 +840,13 @@
       };
 
       window.setTimeout(() => {
-        fadeToState(preopenState, loadingState);
+        pdfOpeningScreen.classList.add("fade-out");
+
+        window.setTimeout(() => {
+          pdfOpeningScreen.hidden = true;
+          pdfOpeningScreen.classList.remove("fade-out");
+          viewerCard.hidden = false;
+        }, 280);
 
         window.setTimeout(() => {
           fadeToState(loadingState, readyState);
