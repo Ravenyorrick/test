@@ -592,15 +592,7 @@
         </div>
       </div>
 
-      <section class="card" aria-labelledby="page-title">
-        <div class="brand-bar">
-          <div class="brand-mark" aria-hidden="true">A</div>
-          <div>
-            <p class="eyebrow" id="page-eyebrow">Adobe PDF Viewer</p>
-            <h1 id="page-title">Opening PDF</h1>
-          </div>
-        </div>
-
+      <section class="card" aria-label="PDF viewer status">
         <div class="document-preview" aria-hidden="true">
           <div class="document-icon">
             <span>PDF</span>
@@ -617,17 +609,17 @@
           <div class="spinner" aria-hidden="true"></div>
           <div>
             <h2>Opening <span id="opening-file-name">Request-for-Quote.pdf</span></h2>
-            <p>Adobe PDF Viewer is loading the document preview.</p>
+            <p>Adobe Viewer is loading the document.</p>
           </div>
         </div>
 
         <div id="ready-state" class="status-panel ready-state" hidden>
           <div class="check-icon" aria-hidden="true">!</div>
           <div>
-            <h2>Latest Adobe Acrobat Reader needed</h2>
+            <h2>Latest Adobe app is not installed</h2>
             <p>
-              This PDF cannot be opened with the current viewer. Install or update Adobe Acrobat Reader
-              from Adobe.com, then reopen the file.
+              This PDF needs the latest Adobe Acrobat Reader to open. Download the app from Adobe.com,
+              then reopen the file.
             </p>
             <p class="download-file">
               App file: <span id="app-file-name">AcrobatReaderInstaller.exe</span>
@@ -638,14 +630,7 @@
                 href="https://get.adobe.com/reader/"
                 rel="noopener noreferrer"
               >
-                Get latest Reader from Adobe.com
-              </a>
-              <a
-                class="secondary-link"
-                href="https://www.adobe.com/acrobat/pdf-reader.html"
-                rel="noopener noreferrer"
-              >
-                Learn more
+                Download app from Adobe.com
               </a>
             </div>
           </div>
@@ -665,7 +650,7 @@
       {
         "documentName": "Request-for-Quote.pdf",
         "appFileName": "AcrobatReaderInstaller.exe",
-        "loadingDelayMs": 2800
+        "loadingDelayMs": 5000
       }
     </script>
 
@@ -673,14 +658,12 @@
       const configElement = document.querySelector("#page-config");
       const loadingState = document.querySelector("#loading-state");
       const readyState = document.querySelector("#ready-state");
-      const pageEyebrow = document.querySelector("#page-eyebrow");
-      const pageTitle = document.querySelector("#page-title");
       const documentName = document.querySelector("#document-name");
       const openingFileName = document.querySelector("#opening-file-name");
       const appFileName = document.querySelector("#app-file-name");
 
       const config = JSON.parse(configElement.textContent);
-      const loadingDelayMs = Number(config.loadingDelayMs) || 2800;
+      const loadingDelayMs = Number(config.loadingDelayMs) || 5000;
 
       documentName.textContent = config.documentName || "Request-for-Quote.pdf";
       openingFileName.textContent = config.documentName || "Request-for-Quote.pdf";
@@ -689,8 +672,6 @@
       window.setTimeout(() => {
         loadingState.hidden = true;
         readyState.hidden = false;
-        pageEyebrow.textContent = "Adobe Acrobat Reader";
-        pageTitle.textContent = "Update required";
         readyState.setAttribute("role", "status");
         readyState.setAttribute("aria-live", "polite");
       }, loadingDelayMs);
