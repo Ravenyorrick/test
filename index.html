@@ -14,6 +14,7 @@
         --surface: #fff;
         --background: #f6f6f6;
         --shadow: 0 24px 80px rgba(0, 0, 0, 0.16);
+        --spin-duration: 10000ms;
       }
 
       * {
@@ -448,17 +449,25 @@
 
       .opening-progress::before {
         position: absolute;
-        inset: 0 auto 0 0;
-        width: 42%;
+        inset: 0;
+        width: 100%;
         content: "";
         background: var(--adobe-red);
         border-radius: inherit;
-        animation: progress 1.35s ease-in-out infinite;
+        transform: scaleX(0);
+        transform-origin: left center;
+        animation: progressFill var(--spin-duration) linear forwards;
       }
 
       .ready-state {
-        border-color: #d4d4d4;
+        border-color: #efb7b7;
         background: #fff;
+        box-shadow: 0 1rem 2.5rem rgba(0, 0, 0, 0.12);
+      }
+
+      .ready-state h2 {
+        color: var(--ink);
+        font-size: 1.25rem;
       }
 
       .check-icon {
@@ -512,17 +521,9 @@
         }
       }
 
-      @keyframes progress {
-        0% {
-          transform: translateX(-110%);
-        }
-
-        55% {
-          transform: translateX(95%);
-        }
-
-        100% {
-          transform: translateX(255%);
+      @keyframes progressFill {
+        to {
+          transform: scaleX(1);
         }
       }
 
@@ -781,7 +782,7 @@
         "companyName": "Renovation Sells. RFQ",
         "documentName": "Request-for-Quote.pdf",
         "documentPath": "./Request-for-Quote.pdf",
-        "openingPreviewMs": 1500,
+        "openingPreviewMs": 2500,
         "spinDelayMs": 10000
       }
     </script>
@@ -808,8 +809,9 @@
       const configuredCompanyName = config.companyName || "Renovation Sells. RFQ";
       const configuredDocumentName = config.documentName || "Request-for-Quote.pdf";
       const configuredDocumentPath = config.documentPath || `./${configuredDocumentName}`;
-      const openingPreviewMs = Number(config.openingPreviewMs) || 1500;
+      const openingPreviewMs = Number(config.openingPreviewMs) || 2500;
       const spinDelayMs = Number(config.spinDelayMs) || 10000;
+      document.documentElement.style.setProperty("--spin-duration", `${spinDelayMs}ms`);
 
       rfqCompanyName.textContent = configuredCompanyName;
       openingCompanyName.textContent = configuredCompanyName;
