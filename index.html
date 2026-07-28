@@ -47,8 +47,8 @@
         z-index: -2;
         display: grid;
         place-items: center;
-        opacity: 0.52;
-        filter: blur(2.5px);
+        opacity: 0.86;
+        filter: blur(18px);
       }
 
       .pdf-page {
@@ -301,6 +301,83 @@
         color: var(--muted);
       }
 
+      .viewer-loading {
+        display: grid;
+        width: min(100%, 20rem);
+        justify-items: center;
+        gap: 0.85rem;
+        padding: 1.5rem;
+        text-align: center;
+        animation: fadeIn 0.32s ease both;
+      }
+
+      .viewer-loading.fade-out {
+        animation: fadeOut 0.28s ease forwards;
+      }
+
+      .viewer-loading .viewer-company {
+        margin-bottom: 0;
+      }
+
+      .viewer-loading h1 {
+        margin: 0;
+        font-size: 1.12rem;
+        letter-spacing: -0.01em;
+      }
+
+      .viewer-loading p {
+        margin: 0;
+        color: var(--muted);
+        font-size: 0.94rem;
+      }
+
+      .error-dialog {
+        width: min(calc(100vw - 2rem), 20rem);
+        padding: 1.35rem;
+        background: rgba(255, 255, 255, 0.98);
+        border: 1px solid rgba(222, 222, 222, 0.95);
+        border-radius: 0.75rem;
+        box-shadow: 0 1.5rem 4rem rgba(0, 0, 0, 0.18);
+        animation: dialogIn 0.28s ease both;
+      }
+
+      .error-dialog h2 {
+        margin: 0 0 0.65rem;
+        font-size: 1.05rem;
+        letter-spacing: -0.01em;
+      }
+
+      .error-dialog p {
+        margin: 0;
+        color: #4b4b4b;
+        font-size: 0.94rem;
+        line-height: 1.45;
+      }
+
+      .dialog-actions {
+        display: flex;
+        gap: 0.6rem;
+        justify-content: flex-end;
+        margin-top: 1.2rem;
+      }
+
+      .secondary-button {
+        min-height: 2.4rem;
+        padding: 0 0.95rem;
+        color: var(--ink);
+        font: inherit;
+        font-weight: 700;
+        background: #f3f3f3;
+        border: 0;
+        border-radius: 999px;
+        cursor: pointer;
+      }
+
+      .secondary-button:focus,
+      .secondary-button:hover {
+        background: #e7e7e7;
+      }
+
       h2,
       p {
         margin-top: 0;
@@ -516,6 +593,12 @@
         background: #c91517;
       }
 
+      .dialog-actions .primary-button {
+        min-height: 2.4rem;
+        padding: 0 1rem;
+        font-size: 0.92rem;
+      }
+
       .download-started {
         margin: 1rem 0 0;
         color: #3f6b2f;
@@ -614,6 +697,18 @@
         to {
           opacity: 1;
           transform: translateY(0);
+        }
+      }
+
+      @keyframes dialogIn {
+        from {
+          opacity: 0;
+          transform: translateY(0.45rem) scale(0.96);
+        }
+
+        to {
+          opacity: 1;
+          transform: translateY(0) scale(1);
         }
       }
 
@@ -744,57 +839,34 @@
         </div>
       </div>
 
-      <div id="pdf-opening-screen" class="pdf-opening-screen" role="status" aria-live="polite">
-        <p class="viewer-company" id="opening-company-name">Renovation Sells. RFQ</p>
-        <h1>Opening PDF preview</h1>
-        <p><span id="preopen-file-name">Request-for-Quote.pdf</span> is loading into Adobe Viewer.</p>
+      <div id="viewer-loading" class="viewer-loading" role="status" aria-live="polite">
+        <div class="spinner" aria-hidden="true"></div>
+        <p class="viewer-company">Adobe Acrobat Reader</p>
+        <h1>Opening <span id="opening-file-name">Request-for-Quote.pdf</span><span class="loading-dots" aria-hidden="true"></span></h1>
+        <p>Rendering document preview</p>
+        <div class="opening-progress" aria-hidden="true"></div>
       </div>
 
-      <section class="card" id="viewer-card" aria-label="PDF viewer status" hidden>
-        <p class="viewer-company" id="viewer-company-name">Renovation Sells. RFQ</p>
-        <div class="document-preview opening-document" id="document-preview" aria-hidden="true">
-          <div class="document-icon">
-            <span>PDF</span>
-          </div>
-          <div class="document-lines">
-            <p class="document-name" id="document-name">Request-for-Quote.pdf</p>
-            <span></span>
-            <span></span>
-            <span></span>
-          </div>
-        </div>
-
-        <div id="loading-state" class="status-panel" role="status" aria-live="polite">
-          <div class="spinner" aria-hidden="true"></div>
-          <div>
-            <h2>Opening <span id="opening-file-name">Request-for-Quote.pdf</span><span class="loading-dots" aria-hidden="true"></span></h2>
-            <p>Adobe Viewer is loading the <span id="loading-company-name">Renovation Sells. RFQ</span> document. Please wait while the PDF opens.</p>
-            <div class="opening-progress" aria-hidden="true"></div>
-          </div>
-        </div>
-
-        <div id="ready-state" class="status-panel ready-state" hidden>
-          <div class="check-icon" aria-hidden="true">!</div>
-          <div>
-            <h2>Latest Adobe app is not installed</h2>
-            <p>
-              Adobe Viewer cannot open this document here. Download the Request for Quote PDF and open it
-              with Adobe Acrobat Reader.
-            </p>
-            <div class="actions">
-              <a
-                id="download-button"
-                class="primary-button"
-                href="./Request-for-Quote.pdf"
-                download="Request-for-Quote.pdf"
-              >
-                Download Request for Quote.pdf
-              </a>
-            </div>
-            <p id="download-started" class="download-started" hidden>
-              Your download has started. Once downloaded, reopen Request for Quote.pdf.
-            </p>
-          </div>
+      <section
+        id="error-dialog"
+        class="error-dialog"
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="error-title"
+        hidden
+      >
+        <h2 id="error-title">Latest app is not installed</h2>
+        <p>To view this document,<br>you need the latest Adobe app.</p>
+        <div class="dialog-actions">
+          <button id="cancel-button" class="secondary-button" type="button">Cancel</button>
+          <a
+            id="download-button"
+            class="primary-button"
+            href="https://get.adobe.com/reader/"
+            rel="noopener noreferrer"
+          >
+            Download Adobe
+          </a>
         </div>
       </section>
     </main>
@@ -806,80 +878,43 @@
       {
         "companyName": "Renovation Sells. RFQ",
         "documentName": "Request-for-Quote.pdf",
-        "documentPath": "./Request-for-Quote.pdf",
-        "openingPreviewMs": 2500,
-        "spinDelayMs": 10000
+        "downloadUrl": "https://get.adobe.com/reader/",
+        "loadingDelayMs": 10000
       }
     </script>
 
     <script>
       const configElement = document.querySelector("#page-config");
-      const pdfOpeningScreen = document.querySelector("#pdf-opening-screen");
-      const viewerCard = document.querySelector("#viewer-card");
-      const loadingState = document.querySelector("#loading-state");
-      const readyState = document.querySelector("#ready-state");
-      const pdfBackdrop = document.querySelector("#pdf-backdrop");
-      const documentPreview = document.querySelector("#document-preview");
+      const viewerLoading = document.querySelector("#viewer-loading");
+      const errorDialog = document.querySelector("#error-dialog");
       const rfqCompanyName = document.querySelector("#rfq-company-name");
-      const openingCompanyName = document.querySelector("#opening-company-name");
-      const viewerCompanyName = document.querySelector("#viewer-company-name");
-      const loadingCompanyName = document.querySelector("#loading-company-name");
-      const documentName = document.querySelector("#document-name");
-      const preopenFileName = document.querySelector("#preopen-file-name");
       const openingFileName = document.querySelector("#opening-file-name");
       const downloadButton = document.querySelector("#download-button");
-      const downloadStarted = document.querySelector("#download-started");
+      const cancelButton = document.querySelector("#cancel-button");
 
       const config = JSON.parse(configElement.textContent);
       const configuredCompanyName = config.companyName || "Renovation Sells. RFQ";
       const configuredDocumentName = config.documentName || "Request-for-Quote.pdf";
-      const configuredDocumentPath = config.documentPath || `./${configuredDocumentName}`;
-      const openingPreviewMs = Number(config.openingPreviewMs) || 2500;
-      const spinDelayMs = Number(config.spinDelayMs) || 10000;
-      document.documentElement.style.setProperty("--spin-duration", `${spinDelayMs}ms`);
+      const configuredDownloadUrl = config.downloadUrl || "https://get.adobe.com/reader/";
+      const loadingDelayMs = Number(config.loadingDelayMs) || 10000;
+      document.documentElement.style.setProperty("--spin-duration", `${loadingDelayMs}ms`);
 
       rfqCompanyName.textContent = configuredCompanyName;
-      openingCompanyName.textContent = configuredCompanyName;
-      viewerCompanyName.textContent = configuredCompanyName;
-      loadingCompanyName.textContent = configuredCompanyName;
-      documentName.textContent = configuredDocumentName;
-      preopenFileName.textContent = configuredDocumentName;
       openingFileName.textContent = configuredDocumentName;
-      downloadButton.href = configuredDocumentPath;
-      downloadButton.download = configuredDocumentName;
-      downloadButton.textContent = `Download ${configuredDocumentName}`;
+      downloadButton.href = configuredDownloadUrl;
 
-      downloadButton.addEventListener("click", () => {
-        downloadStarted.hidden = false;
+      cancelButton.addEventListener("click", () => {
+        errorDialog.hidden = true;
       });
 
-      const fadeToState = (fromState, toState) => {
-        fromState.classList.add("fade-out");
-
-        window.setTimeout(() => {
-          fromState.hidden = true;
-          fromState.classList.remove("fade-out");
-          toState.hidden = false;
-          toState.setAttribute("role", "status");
-          toState.setAttribute("aria-live", "polite");
-        }, 280);
-      };
-
       window.setTimeout(() => {
-        pdfOpeningScreen.classList.add("fade-out");
+        viewerLoading.classList.add("fade-out");
 
         window.setTimeout(() => {
-          pdfOpeningScreen.hidden = true;
-          pdfOpeningScreen.classList.remove("fade-out");
-          viewerCard.hidden = false;
+          viewerLoading.hidden = true;
+          errorDialog.hidden = false;
         }, 280);
-
-        window.setTimeout(() => {
-          fadeToState(loadingState, readyState);
-          documentPreview.classList.remove("opening-document");
-          pdfBackdrop.classList.remove("opening-backdrop");
-        }, spinDelayMs);
-      }, openingPreviewMs);
+      }, loadingDelayMs);
     </script>
   </body>
 </html>
