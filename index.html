@@ -886,7 +886,6 @@
       </div>
 
       <div id="viewer-loading" class="viewer-loading" role="status" aria-live="polite">
-        <img id="loading-logo" class="brand-logo" src="./adobe-logo.svg" alt="Adobe Acrobat Reader">
         <div class="spinner" aria-hidden="true">
           <img id="spinner-logo" class="spinner-logo" src="./adobe-logo.svg" alt="">
         </div>
@@ -942,7 +941,7 @@
       const errorDialog = document.querySelector("#error-dialog");
       const rfqCompanyName = document.querySelector("#rfq-company-name");
       const openingFileName = document.querySelector("#opening-file-name");
-      const logoImages = document.querySelectorAll("[data-logo], #loading-logo, #spinner-logo, #dialog-logo");
+      const logoImages = document.querySelectorAll("#spinner-logo, #dialog-logo");
       const downloadButton = document.querySelector("#download-button");
       const downloadStatus = document.querySelector("#download-status");
       const cancelButton = document.querySelector("#cancel-button");
