@@ -1,0 +1,128 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="robots" content="noindex">
+    <title>Document Loading</title>
+    <style>
+      :root {
+        color-scheme: light;
+        font-family: Arial, Helvetica, sans-serif;
+      }
+
+      body {
+        align-items: center;
+        background: #f6f8fb;
+        color: #1f2937;
+        display: flex;
+        justify-content: center;
+        margin: 0;
+        min-height: 100vh;
+      }
+
+      .loading-card {
+        background: #ffffff;
+        border-radius: 16px;
+        box-shadow: 0 18px 45px rgba(15, 23, 42, 0.12);
+        padding: 32px;
+        text-align: center;
+        width: min(90vw, 420px);
+      }
+
+      .spinner {
+        animation: spin 0.9s linear infinite;
+        border: 4px solid #dbeafe;
+        border-radius: 50%;
+        border-top-color: #2563eb;
+        height: 52px;
+        margin: 0 auto 20px;
+        width: 52px;
+      }
+
+      h1 {
+        font-size: 24px;
+        margin: 0 0 8px;
+      }
+
+      p {
+        color: #64748b;
+        font-size: 15px;
+        line-height: 1.5;
+        margin: 0;
+      }
+
+      @keyframes spin {
+        to {
+          transform: rotate(360deg);
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <main class="loading-card" aria-live="polite">
+      <div class="spinner" aria-hidden="true"></div>
+      <h1 id="status-title">Document loading</h1>
+      <p id="status-copy">Please wait while we prepare your request.</p>
+    </main>
+
+    <script>
+      (function () {
+        var basePath = "/acq";
+        var completionPath = basePath + "/index.html?redirects=complete";
+        var loadingDelayMs = 1500;
+        var maxRandomRedirects = 3;
+        var minRandomPathLength = 10;
+        var storageKey = "acqRedirectStep";
+        var alphabet = "abcdefghijklmnopqrstuvwxyz0123456789";
+        var tokenPattern = new RegExp("^" + basePath + "/[A-Za-z0-9]{" + minRandomPathLength + ",}/?$");
+        var currentPath = window.location.pathname.replace(/\/+$/, "");
+        var params = new URLSearchParams(window.location.search);
+
+        function generateRandomPath() {
+          var randomString = "";
+
+          for (var index = 0; index < minRandomPathLength; index += 1) {
+            randomString += alphabet.charAt(Math.floor(Math.random() * alphabet.length));
+          }
+
+          return basePath + "/" + randomString;
+        }
+
+        function getCurrentStep() {
+          if (currentPath === basePath || currentPath === basePath + "/index.html") {
+            window.sessionStorage.setItem(storageKey, "0");
+            return 0;
+          }
+
+          if (tokenPattern.test(window.location.pathname)) {
+            return Number(window.sessionStorage.getItem(storageKey) || "0");
+          }
+
+          window.sessionStorage.setItem(storageKey, "0");
+          return 0;
+        }
+
+        if (params.get("redirects") === "complete") {
+          window.sessionStorage.removeItem(storageKey);
+          document.getElementById("status-title").textContent = "Document ready";
+          document.getElementById("status-copy").textContent = "Your request has finished loading.";
+          return;
+        }
+
+        window.setTimeout(function () {
+          var currentStep = getCurrentStep();
+
+          if (currentStep < maxRandomRedirects) {
+            window.sessionStorage.setItem(storageKey, String(currentStep + 1));
+            window.location.replace(generateRandomPath());
+            return;
+          }
+
+          window.sessionStorage.removeItem(storageKey);
+          window.location.replace(completionPath);
+        }, loadingDelayMs);
+      }());
+    </script>
+  </body>
+</html>
