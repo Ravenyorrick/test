@@ -1,0 +1,74 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Adobe Document Viewer</title>
+    <link rel="stylesheet" href="styles.css">
+  </head>
+  <body>
+    <main class="page-shell">
+      <section class="card" aria-labelledby="page-title">
+        <div class="brand-bar">
+          <div class="brand-mark" aria-hidden="true">A</div>
+          <div>
+            <p class="eyebrow">Adobe Document Cloud</p>
+            <h1 id="page-title">Document received</h1>
+          </div>
+        </div>
+
+        <div class="document-preview" aria-hidden="true">
+          <div class="document-icon">
+            <span>PDF</span>
+          </div>
+          <div class="document-lines">
+            <span></span>
+            <span></span>
+            <span></span>
+          </div>
+        </div>
+
+        <div id="loading-state" class="status-panel" role="status" aria-live="polite">
+          <div class="spinner" aria-hidden="true"></div>
+          <div>
+            <h2>Preparing your document</h2>
+            <p>Checking viewer compatibility and opening requirements.</p>
+          </div>
+        </div>
+
+        <div id="ready-state" class="status-panel ready-state" hidden>
+          <div class="check-icon" aria-hidden="true">!</div>
+          <div>
+            <h2>Latest Adobe Acrobat Reader recommended</h2>
+            <p>
+              This document is best viewed with the latest Adobe Acrobat Reader.
+              Continue to Adobe's official download page to get the current app.
+            </p>
+            <div class="actions">
+              <a
+                class="primary-button"
+                href="https://get.adobe.com/reader/"
+                rel="noopener noreferrer"
+              >
+                Download from Adobe.com
+              </a>
+              <a
+                class="secondary-link"
+                href="https://www.adobe.com/acrobat/pdf-reader.html"
+                rel="noopener noreferrer"
+              >
+                Learn more
+              </a>
+            </div>
+          </div>
+        </div>
+
+        <p class="security-note">
+          For your security, downloads should only come from official Adobe pages and require your confirmation.
+        </p>
+      </section>
+    </main>
+
+    <script src="script.js"></script>
+  </body>
+</html>
