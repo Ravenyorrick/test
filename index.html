@@ -42,18 +42,17 @@
 
       .pdf-backdrop {
         position: absolute;
-        inset: 2vh 0;
+        inset: 1vh 0;
         z-index: -2;
         display: grid;
         place-items: center;
-        opacity: 0.46;
-        filter: blur(3px);
-        transform: rotate(-2deg) scale(1.01);
+        opacity: 0.52;
+        filter: blur(2.5px);
       }
 
       .pdf-page {
-        width: min(58vw, 40rem);
-        min-height: min(94vh, 58rem);
+        width: min(68vw, 46rem);
+        min-height: min(96vh, 62rem);
         aspect-ratio: 8.5 / 11;
         padding: clamp(1.8rem, 3vw, 2.8rem);
         background: #fff;
@@ -603,13 +602,13 @@
         }
 
         .pdf-backdrop {
-          inset: 8vh -28vw;
-          opacity: 0.26;
+          inset: 4vh 0;
+          opacity: 0.34;
         }
 
         .pdf-page {
-          width: min(92vw, 28rem);
-          min-height: 46rem;
+          width: min(92vw, 32rem);
+          min-height: 48rem;
           padding: 1.6rem;
         }
 
