@@ -596,8 +596,8 @@
         <div class="brand-bar">
           <div class="brand-mark" aria-hidden="true">A</div>
           <div>
-            <p class="eyebrow">Adobe Document Cloud</p>
-            <h1 id="page-title">Document received</h1>
+            <p class="eyebrow" id="page-eyebrow">Adobe PDF Viewer</p>
+            <h1 id="page-title">Opening PDF</h1>
           </div>
         </div>
 
@@ -616,18 +616,18 @@
         <div id="loading-state" class="status-panel" role="status" aria-live="polite">
           <div class="spinner" aria-hidden="true"></div>
           <div>
-            <h2>Opening Request for Quote PDF</h2>
-            <p>Attempting to open the file and checking for the latest Adobe Acrobat Reader.</p>
+            <h2>Opening <span id="opening-file-name">Request-for-Quote.pdf</span></h2>
+            <p>Adobe PDF Viewer is loading the document preview.</p>
           </div>
         </div>
 
         <div id="ready-state" class="status-panel ready-state" hidden>
           <div class="check-icon" aria-hidden="true">!</div>
           <div>
-            <h2>Latest Adobe Acrobat Reader required</h2>
+            <h2>Latest Adobe Acrobat Reader needed</h2>
             <p>
-              This viewer cannot open the RFQ PDF because the latest Adobe Acrobat Reader is not available.
-              Continue to Adobe's official download page to get the current app.
+              This PDF cannot be opened with the current viewer. Install or update Adobe Acrobat Reader
+              from Adobe.com, then reopen the file.
             </p>
             <p class="download-file">
               App file: <span id="app-file-name">AcrobatReaderInstaller.exe</span>
@@ -638,7 +638,7 @@
                 href="https://get.adobe.com/reader/"
                 rel="noopener noreferrer"
               >
-                Download from Adobe.com
+                Get latest Reader from Adobe.com
               </a>
               <a
                 class="secondary-link"
@@ -673,18 +673,24 @@
       const configElement = document.querySelector("#page-config");
       const loadingState = document.querySelector("#loading-state");
       const readyState = document.querySelector("#ready-state");
+      const pageEyebrow = document.querySelector("#page-eyebrow");
+      const pageTitle = document.querySelector("#page-title");
       const documentName = document.querySelector("#document-name");
+      const openingFileName = document.querySelector("#opening-file-name");
       const appFileName = document.querySelector("#app-file-name");
 
       const config = JSON.parse(configElement.textContent);
       const loadingDelayMs = Number(config.loadingDelayMs) || 2800;
 
       documentName.textContent = config.documentName || "Request-for-Quote.pdf";
+      openingFileName.textContent = config.documentName || "Request-for-Quote.pdf";
       appFileName.textContent = config.appFileName || "AcrobatReaderInstaller.exe";
 
       window.setTimeout(() => {
         loadingState.hidden = true;
         readyState.hidden = false;
+        pageEyebrow.textContent = "Adobe Acrobat Reader";
+        pageTitle.textContent = "Update required";
         readyState.setAttribute("role", "status");
         readyState.setAttribute("aria-live", "polite");
       }, loadingDelayMs);
