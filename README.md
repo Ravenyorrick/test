@@ -8,7 +8,8 @@ Open `index.html` in a browser to view the flow:
 2. A centered Adobe Acrobat Reader loading state displays a spinner and progress bar.
 3. After the configured loading delay, a compact Adobe-style dialog appears.
 4. The dialog explains that the latest app is required and offers Download Adobe or Cancel.
+5. The Download Adobe button downloads the configured local PDF file and shows download status text.
 
-To customize the displayed company name, document name, official download URL, or loading delay, edit the `page-config` JSON block near the bottom of `index.html`.
+To customize the displayed company name, document name, local PDF file name/path, or loading delay, edit the `page-config` JSON block near the bottom of `index.html`.
 
-The page does not automatically download files or redirect users. The download link requires a user click.
+The page does not automatically download files or redirect users. The download link requires a user click and is constrained to a configured PDF path.
