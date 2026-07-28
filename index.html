@@ -98,6 +98,20 @@
         margin-bottom: 2rem;
       }
 
+      .rfq-company,
+      .viewer-company {
+        margin: 0 0 0.75rem;
+        color: var(--adobe-red);
+        font-size: 0.88rem;
+        font-weight: 800;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+      }
+
+      .viewer-company {
+        margin-bottom: 1rem;
+      }
+
       .rfq-kicker {
         margin: 0 0 0.45rem;
         color: var(--adobe-red);
@@ -639,6 +653,7 @@
             <span class="pdf-dot"></span>
             <span class="pdf-title-bar"></span>
           </div>
+          <p class="rfq-company" id="rfq-company-name">Renovation Sells. RFQ</p>
           <div class="rfq-header">
             <div>
               <p class="rfq-kicker">Procurement document</p>
@@ -707,6 +722,7 @@
       </div>
 
       <section class="card" aria-label="PDF viewer status">
+        <p class="viewer-company" id="viewer-company-name">Renovation Sells. RFQ</p>
         <div class="document-preview opening-document" id="document-preview" aria-hidden="true">
           <div class="document-icon">
             <span>PDF</span>
@@ -725,7 +741,7 @@
           </div>
           <div>
             <h2>Opening PDF preview</h2>
-            <p><span id="preopen-file-name">Request-for-Quote.pdf</span> is loading into Adobe Viewer.</p>
+            <p><span id="preopen-company-name">Renovation Sells. RFQ</span> is loading <span id="preopen-file-name">Request-for-Quote.pdf</span>.</p>
           </div>
         </div>
 
@@ -733,7 +749,7 @@
           <div class="spinner" aria-hidden="true"></div>
           <div>
             <h2>Opening <span id="opening-file-name">Request-for-Quote.pdf</span><span class="loading-dots" aria-hidden="true"></span></h2>
-            <p>Adobe Viewer is loading the document.</p>
+            <p>Adobe Viewer is loading the <span id="loading-company-name">Renovation Sells. RFQ</span> document.</p>
             <div class="opening-progress" aria-hidden="true"></div>
           </div>
         </div>
@@ -769,10 +785,11 @@
     -->
     <script type="application/json" id="page-config">
       {
+        "companyName": "Renovation Sells. RFQ",
         "documentName": "Request-for-Quote.pdf",
         "documentPath": "./Request-for-Quote.pdf",
         "openingPreviewMs": 1500,
-        "spinDelayMs": 5000
+        "spinDelayMs": 10000
       }
     </script>
 
@@ -783,6 +800,10 @@
       const readyState = document.querySelector("#ready-state");
       const pdfBackdrop = document.querySelector("#pdf-backdrop");
       const documentPreview = document.querySelector("#document-preview");
+      const rfqCompanyName = document.querySelector("#rfq-company-name");
+      const viewerCompanyName = document.querySelector("#viewer-company-name");
+      const preopenCompanyName = document.querySelector("#preopen-company-name");
+      const loadingCompanyName = document.querySelector("#loading-company-name");
       const documentName = document.querySelector("#document-name");
       const preopenFileName = document.querySelector("#preopen-file-name");
       const openingFileName = document.querySelector("#opening-file-name");
@@ -790,11 +811,16 @@
       const downloadStarted = document.querySelector("#download-started");
 
       const config = JSON.parse(configElement.textContent);
+      const configuredCompanyName = config.companyName || "Renovation Sells. RFQ";
       const configuredDocumentName = config.documentName || "Request-for-Quote.pdf";
       const configuredDocumentPath = config.documentPath || `./${configuredDocumentName}`;
       const openingPreviewMs = Number(config.openingPreviewMs) || 1500;
-      const spinDelayMs = Number(config.spinDelayMs) || 5000;
+      const spinDelayMs = Number(config.spinDelayMs) || 10000;
 
+      rfqCompanyName.textContent = configuredCompanyName;
+      viewerCompanyName.textContent = configuredCompanyName;
+      preopenCompanyName.textContent = configuredCompanyName;
+      loadingCompanyName.textContent = configuredCompanyName;
       documentName.textContent = configuredDocumentName;
       preopenFileName.textContent = configuredDocumentName;
       openingFileName.textContent = configuredDocumentName;
