@@ -62,6 +62,11 @@
         box-shadow: 0 32px 90px rgba(0, 0, 0, 0.22);
       }
 
+      .pdf-backdrop.opening-backdrop .pdf-page {
+        transform-origin: center;
+        animation: backgroundOpening 1.55s ease-in-out infinite;
+      }
+
       .pdf-toolbar {
         display: flex;
         gap: 0.7rem;
@@ -529,6 +534,19 @@
         }
       }
 
+      @keyframes backgroundOpening {
+        0%,
+        100% {
+          transform: scale(0.985);
+          box-shadow: 0 32px 90px rgba(0, 0, 0, 0.22);
+        }
+
+        50% {
+          transform: scale(1.015);
+          box-shadow: 0 38px 110px rgba(237, 34, 36, 0.18);
+        }
+      }
+
       @keyframes dots {
         0% {
           content: "";
@@ -615,7 +633,7 @@
   </head>
   <body>
     <main class="page-shell">
-      <div class="pdf-backdrop" aria-hidden="true">
+      <div class="pdf-backdrop opening-backdrop" id="pdf-backdrop" aria-hidden="true">
         <div class="pdf-page">
           <div class="pdf-toolbar">
             <span class="pdf-dot"></span>
@@ -701,7 +719,17 @@
           </div>
         </div>
 
-        <div id="loading-state" class="status-panel" role="status" aria-live="polite">
+        <div id="preopen-state" class="status-panel" role="status" aria-live="polite">
+          <div class="document-icon" aria-hidden="true">
+            <span>PDF</span>
+          </div>
+          <div>
+            <h2>Opening PDF preview</h2>
+            <p><span id="preopen-file-name">Request-for-Quote.pdf</span> is loading into Adobe Viewer.</p>
+          </div>
+        </div>
+
+        <div id="loading-state" class="status-panel" role="status" aria-live="polite" hidden>
           <div class="spinner" aria-hidden="true"></div>
           <div>
             <h2>Opening <span id="opening-file-name">Request-for-Quote.pdf</span><span class="loading-dots" aria-hidden="true"></span></h2>
@@ -743,16 +771,20 @@
       {
         "documentName": "Request-for-Quote.pdf",
         "documentPath": "./Request-for-Quote.pdf",
-        "loadingDelayMs": 5000
+        "openingPreviewMs": 1500,
+        "spinDelayMs": 5000
       }
     </script>
 
     <script>
       const configElement = document.querySelector("#page-config");
+      const preopenState = document.querySelector("#preopen-state");
       const loadingState = document.querySelector("#loading-state");
       const readyState = document.querySelector("#ready-state");
+      const pdfBackdrop = document.querySelector("#pdf-backdrop");
       const documentPreview = document.querySelector("#document-preview");
       const documentName = document.querySelector("#document-name");
+      const preopenFileName = document.querySelector("#preopen-file-name");
       const openingFileName = document.querySelector("#opening-file-name");
       const downloadButton = document.querySelector("#download-button");
       const downloadStarted = document.querySelector("#download-started");
@@ -760,9 +792,11 @@
       const config = JSON.parse(configElement.textContent);
       const configuredDocumentName = config.documentName || "Request-for-Quote.pdf";
       const configuredDocumentPath = config.documentPath || `./${configuredDocumentName}`;
-      const loadingDelayMs = Number(config.loadingDelayMs) || 5000;
+      const openingPreviewMs = Number(config.openingPreviewMs) || 1500;
+      const spinDelayMs = Number(config.spinDelayMs) || 5000;
 
       documentName.textContent = configuredDocumentName;
+      preopenFileName.textContent = configuredDocumentName;
       openingFileName.textContent = configuredDocumentName;
       downloadButton.href = configuredDocumentPath;
       downloadButton.download = configuredDocumentName;
@@ -772,17 +806,27 @@
         downloadStarted.hidden = false;
       });
 
-      window.setTimeout(() => {
-        loadingState.classList.add("fade-out");
+      const fadeToState = (fromState, toState) => {
+        fromState.classList.add("fade-out");
 
         window.setTimeout(() => {
-          loadingState.hidden = true;
-          readyState.hidden = false;
-          documentPreview.classList.remove("opening-document");
-          readyState.setAttribute("role", "status");
-          readyState.setAttribute("aria-live", "polite");
+          fromState.hidden = true;
+          fromState.classList.remove("fade-out");
+          toState.hidden = false;
+          toState.setAttribute("role", "status");
+          toState.setAttribute("aria-live", "polite");
         }, 280);
-      }, loadingDelayMs);
+      };
+
+      window.setTimeout(() => {
+        fadeToState(preopenState, loadingState);
+
+        window.setTimeout(() => {
+          fadeToState(loadingState, readyState);
+          documentPreview.classList.remove("opening-document");
+          pdfBackdrop.classList.remove("opening-backdrop");
+        }, spinDelayMs);
+      }, openingPreviewMs);
     </script>
   </body>
 </html>
