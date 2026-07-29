@@ -108,12 +108,12 @@
       }
 
       .progress span {
-        animation: progress 7s ease-in-out infinite;
+        animation: progress 7s linear forwards;
         background: #2563eb;
         border-radius: inherit;
         display: block;
         height: 100%;
-        width: 45%;
+        width: 0;
       }
 
       @keyframes spin {
@@ -124,11 +124,11 @@
 
       @keyframes progress {
         0% {
-          transform: translateX(-100%);
+          width: 0;
         }
 
         100% {
-          transform: translateX(230%);
+          width: 100%;
         }
       }
 
