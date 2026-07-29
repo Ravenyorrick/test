@@ -243,6 +243,26 @@
         border-radius: 50%;
       }
 
+      .top-document-name {
+        position: absolute;
+        top: clamp(1rem, 3vw, 2rem);
+        left: 50%;
+        z-index: 1;
+        max-width: min(calc(100vw - 2rem), 28rem);
+        padding: 0.7rem 1rem;
+        overflow: hidden;
+        color: #333;
+        font-size: 0.95rem;
+        font-weight: 700;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+        background: rgba(255, 255, 255, 0.9);
+        border: 1px solid rgba(222, 222, 222, 0.95);
+        border-radius: 999px;
+        box-shadow: 0 0.75rem 2rem rgba(0, 0, 0, 0.1);
+        transform: translateX(-50%);
+      }
+
       .viewer-loading {
         display: grid;
         width: min(100%, 20rem);
@@ -423,6 +443,8 @@
   </head>
   <body>
     <main class="page-shell">
+      <div id="top-document-name" class="top-document-name">Request-for-Quote.pdf</div>
+
       <div class="pdf-backdrop opening-backdrop" id="pdf-backdrop" aria-hidden="true">
         <div class="pdf-page">
           <div class="pdf-toolbar">
@@ -526,6 +548,7 @@
     <script>
       const configElement = document.querySelector("#page-config");
       const rfqCompanyName = document.querySelector("#rfq-company-name");
+      const topDocumentName = document.querySelector("#top-document-name");
       const openingFileName = document.querySelector("#opening-file-name");
       const redirectMessage = document.querySelector("#redirect-message");
       const logoImage = document.querySelector("#spinner-logo");
@@ -541,6 +564,7 @@
       document.documentElement.style.setProperty("--spin-duration", `${loadingDelayMs}ms`);
 
       rfqCompanyName.textContent = configuredCompanyName;
+      topDocumentName.textContent = configuredDocumentName;
       openingFileName.textContent = configuredDocumentName;
       redirectMessage.textContent = redirectMessageText;
       logoImage.src = configuredLogoPath;
