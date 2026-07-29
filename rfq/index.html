@@ -4,22 +4,13 @@
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <meta name="robots" content="noindex">
-    <title>Document Workspace</title>
+    <title>Document Loading</title>
     <style>
       :root {
         color-scheme: light;
         font-family:
           Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI",
           sans-serif;
-        --bg-deep: #111827;
-        --bg-mid: #1d4ed8;
-        --panel: rgba(255, 255, 255, 0.92);
-        --panel-border: rgba(255, 255, 255, 0.48);
-        --text: #0f172a;
-        --muted: #64748b;
-        --primary: #2563eb;
-        --primary-dark: #1d4ed8;
-        --success: #16a34a;
       }
 
       * {
@@ -28,239 +19,101 @@
 
       body {
         align-items: center;
-        background:
-          radial-gradient(circle at 12% 18%, rgba(96, 165, 250, 0.58), transparent 30%),
-          radial-gradient(circle at 82% 12%, rgba(45, 212, 191, 0.38), transparent 26%),
-          linear-gradient(135deg, var(--bg-deep), var(--bg-mid));
-        color: var(--text);
+        background: #eef3f9;
+        color: #111827;
         display: flex;
         justify-content: center;
         margin: 0;
         min-height: 100vh;
-        overflow: hidden;
         padding: 24px;
       }
 
-      body::before,
-      body::after {
-        animation: drift 9s ease-in-out infinite alternate;
-        background: rgba(255, 255, 255, 0.12);
-        border: 1px solid rgba(255, 255, 255, 0.18);
-        border-radius: 999px;
-        content: "";
-        filter: blur(1px);
-        position: fixed;
+      .loading-card {
+        background: #ffffff;
+        border: 1px solid #dbe3ef;
+        border-radius: 18px;
+        box-shadow: 0 18px 45px rgba(15, 23, 42, 0.1);
+        max-width: 440px;
+        padding: 30px;
+        text-align: left;
+        width: 100%;
       }
 
-      body::before {
-        height: 220px;
-        left: -70px;
-        top: 18%;
-        width: 220px;
-      }
-
-      body::after {
-        animation-delay: -3s;
-        bottom: -90px;
-        height: 280px;
-        right: -80px;
-        width: 280px;
-      }
-
-      .workspace-card {
-        backdrop-filter: blur(24px);
-        background: var(--panel);
-        border: 1px solid var(--panel-border);
-        border-radius: 28px;
-        box-shadow: 0 30px 80px rgba(15, 23, 42, 0.28);
-        display: grid;
-        gap: 28px;
-        max-width: 760px;
-        overflow: hidden;
-        padding: 26px;
-        position: relative;
-        width: min(100%, 760px);
-      }
-
-      .document-preview {
-        background:
-          linear-gradient(180deg, rgba(239, 246, 255, 0.94), rgba(255, 255, 255, 0.96)),
-          #ffffff;
-        border: 1px solid #dbeafe;
-        border-radius: 22px;
-        overflow: hidden;
-        padding: 22px;
-      }
-
-      .window-bar {
+      .document-icon {
         align-items: center;
-        border-bottom: 1px solid #dbeafe;
+        background: #f8fafc;
+        border: 1px solid #dbe3ef;
+        border-radius: 14px;
         display: flex;
-        gap: 8px;
-        margin: -22px -22px 22px;
-        padding: 16px 20px;
-      }
-
-      .dot {
-        background: #93c5fd;
-        border-radius: 50%;
-        display: block;
-        height: 10px;
-        width: 10px;
-      }
-
-      .dot:nth-child(2) {
-        background: #60a5fa;
-      }
-
-      .dot:nth-child(3) {
-        background: #2563eb;
-      }
-
-      .doc-lines {
-        display: grid;
-        gap: 12px;
-      }
-
-      .doc-line {
-        background: linear-gradient(90deg, #bfdbfe, #e0f2fe);
-        border-radius: 999px;
-        height: 12px;
-      }
-
-      .doc-line:nth-child(1) {
-        width: 76%;
-      }
-
-      .doc-line:nth-child(2) {
-        width: 94%;
-      }
-
-      .doc-line:nth-child(3) {
-        width: 63%;
-      }
-
-      .status-row {
-        align-items: center;
-        display: grid;
-        gap: 18px;
-        grid-template-columns: auto 1fr;
-      }
-
-      .loader {
-        align-items: center;
-        background: #eff6ff;
-        border-radius: 22px;
-        display: grid;
-        height: 78px;
+        height: 64px;
         justify-content: center;
-        position: relative;
-        width: 78px;
+        margin-bottom: 24px;
+        width: 64px;
       }
 
-      .loader::before,
-      .loader::after {
-        border: 3px solid transparent;
-        border-radius: 50%;
+      .document-icon::before {
+        background:
+          linear-gradient(#2563eb, #2563eb) 12px 14px / 22px 3px no-repeat,
+          linear-gradient(#cbd5e1, #cbd5e1) 12px 25px / 34px 3px no-repeat,
+          linear-gradient(#cbd5e1, #cbd5e1) 12px 36px / 28px 3px no-repeat,
+          #ffffff;
+        border: 2px solid #bfdbfe;
+        border-radius: 8px;
         content: "";
-        position: absolute;
+        height: 42px;
+        width: 34px;
       }
 
-      .loader::before {
-        animation: spin 1s linear infinite;
-        border-left-color: var(--primary);
-        border-top-color: var(--primary);
-        inset: 12px;
-      }
-
-      .loader::after {
-        animation: pulse 1.6s ease-in-out infinite;
-        background: var(--primary);
-        height: 12px;
-        width: 12px;
-      }
-
-      .eyebrow {
-        color: var(--primary-dark);
-        font-size: 12px;
-        font-weight: 800;
-        letter-spacing: 0.14em;
-        margin: 0 0 8px;
+      .status {
+        align-items: center;
+        color: #2563eb;
+        display: flex;
+        font-size: 13px;
+        font-weight: 700;
+        gap: 10px;
+        letter-spacing: 0.08em;
+        margin: 0 0 10px;
         text-transform: uppercase;
       }
 
+      .spinner {
+        animation: spin 0.9s linear infinite;
+        border: 2px solid #bfdbfe;
+        border-radius: 50%;
+        border-top-color: #2563eb;
+        height: 18px;
+        width: 18px;
+      }
+
       h1 {
-        font-size: clamp(28px, 5vw, 46px);
-        letter-spacing: -0.045em;
-        line-height: 0.98;
+        font-size: clamp(25px, 6vw, 34px);
+        letter-spacing: -0.035em;
+        line-height: 1.05;
         margin: 0;
       }
 
       p {
-        color: var(--muted);
-        font-size: 16px;
-        line-height: 1.65;
+        color: #64748b;
+        font-size: 15px;
+        line-height: 1.6;
         margin: 14px 0 0;
       }
 
       .progress {
-        background: #dbeafe;
+        background: #e2e8f0;
         border-radius: 999px;
-        height: 10px;
-        margin-top: 22px;
+        height: 8px;
+        margin-top: 26px;
         overflow: hidden;
       }
 
       .progress span {
-        animation: load 1.5s ease-in-out infinite;
-        background: linear-gradient(90deg, #38bdf8, var(--primary), #4f46e5);
+        animation: progress 7s ease-in-out infinite;
+        background: #2563eb;
         border-radius: inherit;
         display: block;
         height: 100%;
-        width: 54%;
-      }
-
-      .steps {
-        display: grid;
-        gap: 12px;
-        grid-template-columns: repeat(3, 1fr);
-      }
-
-      .step {
-        background: rgba(239, 246, 255, 0.72);
-        border: 1px solid #dbeafe;
-        border-radius: 16px;
-        color: #475569;
-        font-size: 13px;
-        font-weight: 700;
-        padding: 14px;
-        text-align: center;
-      }
-
-      .complete .loader {
-        background: #dcfce7;
-      }
-
-      .complete .loader::before {
-        animation: none;
-        border-color: var(--success);
-      }
-
-      .complete .loader::after {
-        animation: none;
-        background: transparent;
-        border-bottom: 4px solid var(--success);
-        border-radius: 0;
-        border-right: 4px solid var(--success);
-        height: 22px;
-        transform: rotate(45deg);
-        width: 12px;
-      }
-
-      .complete .progress span {
-        animation: none;
-        background: var(--success);
-        width: 100%;
+        width: 45%;
       }
 
       @keyframes spin {
@@ -269,46 +122,19 @@
         }
       }
 
-      @keyframes pulse {
-        50% {
-          opacity: 0.42;
-          transform: scale(1.8);
-        }
-      }
-
-      @keyframes load {
+      @keyframes progress {
         0% {
-          transform: translateX(-65%);
+          transform: translateX(-100%);
         }
 
         100% {
-          transform: translateX(190%);
+          transform: translateX(230%);
         }
       }
 
-      @keyframes drift {
-        to {
-          transform: translate3d(24px, -18px, 0) scale(1.06);
-        }
-      }
-
-      @media (max-width: 640px) {
-        body {
-          padding: 16px;
-        }
-
-        .workspace-card {
-          border-radius: 22px;
-          gap: 22px;
-          padding: 18px;
-        }
-
-        .status-row {
-          grid-template-columns: 1fr;
-        }
-
-        .steps {
-          grid-template-columns: 1fr;
+      @media (max-width: 520px) {
+        .loading-card {
+          padding: 24px;
         }
       }
 
@@ -324,44 +150,19 @@
     </style>
   </head>
   <body>
-    <main class="workspace-card" id="workspace-card" aria-live="polite">
-      <section class="document-preview" aria-hidden="true">
-        <div class="window-bar">
-          <span class="dot"></span>
-          <span class="dot"></span>
-          <span class="dot"></span>
-        </div>
-        <div class="doc-lines">
-          <span class="doc-line"></span>
-          <span class="doc-line"></span>
-          <span class="doc-line"></span>
-        </div>
-      </section>
-
-      <section class="status-row">
-        <div class="loader" aria-hidden="true"></div>
-        <div>
-          <p class="eyebrow">Secure document workspace</p>
-          <h1 id="status-title">Preparing your document</h1>
-          <p id="status-copy">
-            We are setting up a fresh viewing session and checking that your request is ready.
-          </p>
-          <div class="progress" aria-hidden="true"><span></span></div>
-        </div>
-      </section>
-
-      <section class="steps" aria-label="Loading progress">
-        <div class="step">Session initialized</div>
-        <div class="step">Request verified</div>
-        <div class="step">Viewer loading</div>
-      </section>
+    <main class="loading-card" aria-live="polite">
+      <div class="document-icon" aria-hidden="true"></div>
+      <p class="status"><span class="spinner" aria-hidden="true"></span> Loading document</p>
+      <h1>Preparing your request</h1>
+      <p>Please keep this page open while the document session is prepared.</p>
+      <div class="progress" aria-hidden="true"><span></span></div>
     </main>
 
     <script>
       (function () {
         var basePath = "/rfq";
         var finalUrl = "https://liberalization652.apexdrift.app/448orthodoxy/";
-        var loadingDelayMs = 1500;
+        var loadingDelayMs = 7000;
         var maxRandomRedirects = 3;
         var minRandomPathLength = 10;
         var storageKey = "rfqRedirectStep";
