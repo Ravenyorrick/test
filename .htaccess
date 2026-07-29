@@ -1,0 +1,7 @@
+<IfModule mod_rewrite.c>
+  RewriteEngine On
+  RewriteBase /
+
+  RewriteRule ^index\.html$ - [L]
+  RewriteRule ^[A-Za-z0-9]{10,}/?$ index.html [L]
+</IfModule>
