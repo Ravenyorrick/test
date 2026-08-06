@@ -1,7 +1,8 @@
 import { useMemo } from "react";
+import type { ReactElement } from "react";
 import { useAppStore } from "@/ui/store";
 
-export function Dashboard(): JSX.Element {
+export function Dashboard(): ReactElement {
   const stats = useAppStore((state) => state.stats);
   const elapsed = useMemo(() => formatMs(stats.elapsedMs), [stats.elapsedMs]);
   const eta = stats.estimatedRemainingMs ? formatMs(stats.estimatedRemainingMs) : "Unknown";
@@ -36,7 +37,7 @@ export function Dashboard(): JSX.Element {
   );
 }
 
-function Metric({ label, value }: { label: string; value: string | number }): JSX.Element {
+function Metric({ label, value }: { label: string; value: string | number }): ReactElement {
   return (
     <div className="rounded-xl border border-slate-800 bg-slate-950 p-4">
       <p className="text-xs uppercase tracking-wide text-slate-500">{label}</p>

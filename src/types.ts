@@ -44,6 +44,7 @@ export interface ExtractionEvent {
   sessionId: string;
   stats: ExtractionStats;
   lead?: LeadRecord;
+  leads?: LeadRecord[];
   log?: LogEntry;
 }
 

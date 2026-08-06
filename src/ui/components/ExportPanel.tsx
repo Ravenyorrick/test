@@ -1,6 +1,7 @@
+import type { ReactElement } from "react";
 import { useAppStore } from "@/ui/store";
 
-export function ExportPanel(): JSX.Element {
+export function ExportPanel(): ReactElement {
   const activeSession = useAppStore((state) => state.activeSession);
   const exportSession = useAppStore((state) => state.export);
   const formats = ["csv", "xlsx", "json", "sqlite"] as const;

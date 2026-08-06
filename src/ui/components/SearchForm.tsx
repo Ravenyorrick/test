@@ -1,6 +1,7 @@
+import type { ReactElement } from "react";
 import { useAppStore } from "@/ui/store";
 
-export function SearchForm(): JSX.Element {
+export function SearchForm(): ReactElement {
   const { url, setUrl, start, cancel, stats } = useAppStore();
   const running = stats.status === "running" || stats.status === "paused";
 

@@ -1,6 +1,7 @@
+import type { ReactElement } from "react";
 import { useAppStore } from "@/ui/store";
 
-export function LogPanel(): JSX.Element {
+export function LogPanel(): ReactElement {
   const logs = useAppStore((state) => state.logs);
 
   return (

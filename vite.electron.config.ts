@@ -4,16 +4,18 @@ import path from "node:path";
 export default defineConfig({
   resolve: {
     alias: {
-      "@": path.resolve(__dirname, "src")
+      "@": path.resolve(import.meta.dirname, "src")
     }
   },
   build: {
+    ssr: true,
+    target: "node22",
     outDir: "dist/electron",
     emptyOutDir: true,
     lib: {
       entry: {
-        main: path.resolve(__dirname, "src/electron/main.ts"),
-        preload: path.resolve(__dirname, "src/electron/preload.ts")
+        main: path.resolve(import.meta.dirname, "src/electron/main.ts"),
+        preload: path.resolve(import.meta.dirname, "src/electron/preload.ts")
       },
       formats: ["es"]
     },

@@ -1,7 +1,8 @@
 import { useMemo } from "react";
+import type { ReactElement } from "react";
 import { useAppStore } from "@/ui/store";
 
-export function LeadTable(): JSX.Element {
+export function LeadTable(): ReactElement {
   const leads = useAppStore((state) => state.leads);
   const columns = useMemo(() => Array.from(new Set(leads.flatMap((lead) => Object.keys(lead.fields)))).slice(0, 12), [leads]);
 

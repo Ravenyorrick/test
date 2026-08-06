@@ -9,7 +9,7 @@ const NEXT_HINTS = ["next", "go to next", "right", "pagination-next"];
 
 export class PaginationDetector {
   detect(root: ParentNode = document): PaginationState {
-    const text = (document.body?.innerText ?? "").replace(/\s+/g, " ");
+    const text = (document.body?.innerText ?? document.body?.textContent ?? "").replace(/\s+/g, " ");
     const currentPage = this.detectCurrentPage(text);
     const lastPage = this.detectLastPage(text);
     const next = this.findNextButton(root);
@@ -63,7 +63,11 @@ export class PaginationDetector {
     const testId = element.getAttribute("data-testid");
     if (testId) return `[data-testid="${CSS.escape(testId)}"]`;
     const aria = element.getAttribute("aria-label");
-    if (aria) return `[aria-label="${CSS.escape(aria)}"]`;
+    if (aria) return `[aria-label="${this.escapeAttribute(aria)}"]`;
     return element.tagName.toLowerCase();
+  }
+
+  private escapeAttribute(value: string): string {
+    return value.replace(/\\/g, "\\\\").replace(/"/g, '\\"');
   }
 }

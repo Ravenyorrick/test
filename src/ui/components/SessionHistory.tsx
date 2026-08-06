@@ -1,6 +1,7 @@
+import type { ReactElement } from "react";
 import { useAppStore } from "@/ui/store";
 
-export function SessionHistory(): JSX.Element {
+export function SessionHistory(): ReactElement {
   const { sessions, loadLeads } = useAppStore();
 
   return (

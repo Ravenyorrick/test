@@ -89,12 +89,15 @@ export class ExtractionRunner {
         stats.duplicates += result.duplicates;
         stats.elapsedMs = Date.now() - started;
         stats.rowsPerSecond = stats.elapsedMs > 0 ? stats.leadsExtracted / (stats.elapsedMs / 1000) : 0;
+        stats.estimatedRemainingMs = stats.lastPage && stats.rowsPerSecond > 0
+          ? (((stats.lastPage - stats.currentPage) * Math.max(records.length, 1)) / stats.rowsPerSecond) * 1000
+          : undefined;
         stats.currentCompany = this.detectCurrentCompany(records);
         session.checkpointPage = stats.currentPage;
         session.leadCount = stats.leadsExtracted;
         session.updatedAt = new Date().toISOString();
         this.sessions.update(session);
-        emit({ sessionId: session.id, stats });
+        emit({ sessionId: session.id, stats, leads: records });
 
         if (!extraction.pagination.canGoNext) break;
         await this.goNext(page, extraction.pagination.nextSelector, stats);
@@ -143,6 +146,7 @@ export class ExtractionRunner {
       stats.status = "paused";
       emit({ sessionId, stats, log: this.log(sessionId, "warn", "Apollo login required. Complete login in the browser window; extraction will resume automatically.") });
       await page.waitForTimeout(2000);
+      stats.status = "running";
     }
   }
 

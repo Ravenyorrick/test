@@ -57,7 +57,7 @@ export const useAppStore = create<AppState>((set, get) => ({
     set((state) => ({
       stats: event.stats,
       logs: event.log ? [...state.logs, event.log] : state.logs,
-      leads: event.lead ? [...state.leads, event.lead] : state.leads
+      leads: event.leads ? [...state.leads, ...event.leads] : (event.lead ? [...state.leads, event.lead] : state.leads)
     }));
   }
 }));
