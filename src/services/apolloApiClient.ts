@@ -7,6 +7,12 @@ export interface ApolloSearchResult {
   debug: ApiRequestDebug;
 }
 
+export interface ApolloBulkEnrichmentResult {
+  matches: Array<Record<string, JsonValue>>;
+  raw: Record<string, JsonValue>;
+  debug: ApiRequestDebug;
+}
+
 export class ApolloApiClient {
   private readonly baseUrl = "https://api.apollo.io/api/v1";
 
@@ -46,6 +52,34 @@ export class ApolloApiClient {
       throw new Error(`Apollo enrichment failed with ${response.status}: ${this.errorMessage(json)}`);
     }
     return json.person as Record<string, JsonValue> | undefined;
+  }
+
+  async bulkEnrich(originalUrl: string, ids: string[], revealPersonalEmails: boolean): Promise<ApolloBulkEnrichmentResult> {
+    const url = new URL(`${this.baseUrl}/people/bulk_match`);
+    url.searchParams.set("reveal_personal_emails", String(revealPersonalEmails));
+    url.searchParams.set("reveal_phone_number", "false");
+    const body = { details: ids.slice(0, 10).map((id) => ({ id })) };
+    const started = Date.now();
+    const response = await fetch(url, { method: "POST", headers: this.headers(), body: JSON.stringify(body) });
+    const json = await this.parseJson(response);
+    if (!response.ok) {
+      throw new Error(`Apollo bulk enrichment failed with ${response.status}: ${this.errorMessage(json)}`);
+    }
+    const matches = (Array.isArray(json.matches) ? json.matches : Array.isArray(json.people) ? json.people : Array.isArray(json.persons) ? json.persons : []) as Array<Record<string, JsonValue>>;
+    return {
+      matches,
+      raw: json,
+      debug: {
+        originalUrl,
+        parsedParameters: [],
+        normalizedParameters: { details: body.details, reveal_personal_emails: revealPersonalEmails },
+        finalPayload: { details: body.details, reveal_personal_emails: revealPersonalEmails },
+        sanitizedHeaders: this.sanitizedHeaders(),
+        validationWarnings: [],
+        validationErrors: [],
+        response: { status: response.status, ok: response.ok, returned: matches.length, elapsedMs: Date.now() - started }
+      }
+    };
   }
 
   filtersToApiBody(filters: SearchFilter[]): Record<string, ApiPayloadValue> {

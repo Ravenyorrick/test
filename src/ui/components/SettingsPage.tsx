@@ -32,6 +32,20 @@ export function SettingsPage(): ReactElement {
           </span>
           <input type="checkbox" checked={settings.autoEnrich} onChange={(event) => updateSettings({ autoEnrich: event.target.checked })} />
         </label>
+        <label className="flex items-center justify-between gap-3 rounded-2xl border border-white/10 bg-white/[0.03] p-4">
+          <span>
+            <span className="block text-sm font-medium text-slate-300">Reveal available emails using Apollo credits</span>
+            <span className="text-xs text-slate-500">Sends `reveal_personal_emails=true` to Apollo Bulk People Enrichment. This may consume credits.</span>
+          </span>
+          <input type="checkbox" checked={settings.revealPersonalEmails} onChange={(event) => updateSettings({ revealPersonalEmails: event.target.checked })} />
+        </label>
+        <label className="flex items-center justify-between gap-3 rounded-2xl border border-white/10 bg-white/[0.03] p-4">
+          <span>
+            <span className="block text-sm font-medium text-slate-300">Reveal during extraction</span>
+            <span className="text-xs text-slate-500">Rows are inserted first, then queued for enrichment immediately while search continues.</span>
+          </span>
+          <input type="checkbox" checked={settings.revealDuringExtraction} onChange={(event) => updateSettings({ revealDuringExtraction: event.target.checked })} />
+        </label>
           </div>
         </Card>
 
@@ -48,6 +62,18 @@ export function SettingsPage(): ReactElement {
             value={settings.perPage}
             onChange={(event) => updateSettings({ perPage: Math.min(100, Math.max(1, Number(event.target.value) || 100)) })}
           />
+        </label>
+        <label className="mt-4 block">
+          <span className="text-sm font-medium text-slate-300">Enrichment workers</span>
+          <input
+            className="field mt-2"
+            type="number"
+            min={1}
+            max={8}
+            value={settings.enrichmentConcurrency}
+            onChange={(event) => updateSettings({ enrichmentConcurrency: Math.min(8, Math.max(1, Number(event.target.value) || 4)) })}
+          />
+          <p className="mt-2 text-xs text-slate-500">Limits concurrent bulk enrichment requests to reduce rate-limit risk.</p>
         </label>
           </div>
         </Card>

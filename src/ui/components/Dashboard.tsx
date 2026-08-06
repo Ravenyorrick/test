@@ -15,8 +15,8 @@ export function Dashboard(): ReactElement {
       <div className="grid gap-4 md:grid-cols-4">
         <MetricCard label="Current page" value={`${stats.currentPage}${stats.lastPage ? ` / ${stats.lastPage}` : ""}`} detail="Auto-detected pagination" icon={<Layers size={18} />} />
         <MetricCard label="Leads extracted" value={stats.leadsExtracted.toLocaleString()} detail={`${stats.duplicates} duplicates skipped`} icon={<Users size={18} />} />
-        <MetricCard label="Rows/sec" value={stats.rowsPerSecond.toFixed(2)} detail="Live throughput" icon={<Gauge size={18} />} />
-        <MetricCard label="Elapsed" value={elapsed} detail={`ETA ${eta}`} icon={<Clock size={18} />} />
+        <MetricCard label="Emails Revealed" value={stats.emailsRevealed ?? 0} detail={`${stats.emailsNotFound ?? 0} not found`} icon={<Gauge size={18} />} />
+        <MetricCard label="Elapsed" value={elapsed} detail={`ETA ${eta} - ${stats.rowsPerSecond.toFixed(2)} rows/sec`} icon={<Clock size={18} />} />
       </div>
 
       <Card className="p-5">

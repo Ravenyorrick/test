@@ -7,7 +7,7 @@ export interface SearchFilter {
   rawKeys: string[];
 }
 
-export type ApiPayloadValue = string | number | boolean | string[] | number[] | boolean[] | Record<string, string | number | boolean>;
+export type ApiPayloadValue = string | number | boolean | string[] | number[] | boolean[] | Array<Record<string, string | number | boolean>> | Record<string, string | number | boolean>;
 
 export interface ApiRequestDebug {
   originalUrl: string;
@@ -46,6 +46,14 @@ export interface ExtractionStats {
   elapsedMs: number;
   estimatedRemainingMs?: number;
   currentCompany?: string;
+  currentLead?: string;
+  peopleEnriched?: number;
+  emailsRevealed?: number;
+  emailsNotFound?: number;
+  enrichmentsFailed?: number;
+  enrichmentsSkipped?: number;
+  creditsUsed?: number;
+  creditsRemaining?: number;
   status: "idle" | "running" | "paused" | "completed" | "failed" | "cancelled";
 }
 
@@ -88,6 +96,11 @@ export interface AppSettings {
   mode: ExtractionMode;
   perPage: number;
   autoEnrich: boolean;
+  revealPersonalEmails: boolean;
+  revealDuringExtraction: boolean;
+  batchEnrichment: boolean;
+  enrichmentConcurrency: number;
+  maxCreditsPerRun?: number;
   theme: "midnight" | "obsidian";
   accent: "blue" | "purple";
   exportDirectory?: string;

@@ -22,7 +22,7 @@ export class ApiExtractionRunner {
     this.cancelled = true;
   }
 
-  async run(url: string, apiKey: string, emit: Emit, perPage = 100, autoEnrich = true): Promise<ExtractionSession> {
+  async run(url: string, apiKey: string, emit: Emit, perPage = 100, autoEnrich = true, revealPersonalEmails = false, enrichmentConcurrency = 4): Promise<ExtractionSession> {
     this.cancelled = false;
     const parsed = this.parser.parse(url);
     const client = new ApolloApiClient(apiKey);
@@ -52,16 +52,15 @@ export class ApiExtractionRunner {
     };
     const seen = new Set<string>();
     const pageSize = Math.min(100, Math.max(1, perPage));
+    const enrichmentJobs: Array<Promise<void>> = [];
+    const maxConcurrentEnrichment = Math.min(8, Math.max(1, enrichmentConcurrency));
 
     try {
       for (let pageNumber = parsed.page; !this.cancelled; pageNumber += 1) {
         stats.currentPage = pageNumber;
         const search = await this.withRetries(() => client.search(url, parsed.filters, pageNumber, pageSize), session.id, stats, emit);
         emit({ sessionId: session.id, stats, debug: search.debug });
-        const records = await Promise.all(search.people.map(async (person) => {
-          const enriched = autoEnrich ? await this.enrichIfPossible(client, person, session.id, stats, emit) : undefined;
-          return this.toLead(url, pageNumber, this.mergePerson(person, enriched));
-        }));
+        const records = search.people.map((person) => this.toLead(url, pageNumber, this.withPipelineStatus(person, autoEnrich ? "Queued for Enrichment" : "Completed")));
         const uniqueRecords = records.filter((record) => {
           if (seen.has(record.hash)) return false;
           seen.add(record.hash);
@@ -79,8 +78,24 @@ export class ApiExtractionRunner {
         this.sessions.update(session);
         emit({ sessionId: session.id, stats, leads: uniqueRecords });
 
+        if (autoEnrich && uniqueRecords.length > 0) {
+          for (const batch of this.chunks(uniqueRecords.filter((record) => typeof record.fields.id === "string"), 10)) {
+            const job = this.enrichBatch(client, url, session.id, batch, revealPersonalEmails, stats, emit);
+            const tracked = job.finally(() => {
+              const index = enrichmentJobs.indexOf(tracked);
+              if (index >= 0) enrichmentJobs.splice(index, 1);
+            });
+            enrichmentJobs.push(tracked);
+            if (enrichmentJobs.length >= maxConcurrentEnrichment) {
+              await Promise.race(enrichmentJobs).catch(() => undefined);
+            }
+          }
+        }
+
         if (search.people.length < pageSize) break;
       }
+
+      await Promise.allSettled(enrichmentJobs);
 
       session.status = this.cancelled ? "paused" : "completed";
       stats.status = session.status;
@@ -99,15 +114,44 @@ export class ApiExtractionRunner {
     }
   }
 
-  private async enrichIfPossible(client: ApolloApiClient, person: Record<string, JsonValue>, sessionId: string, stats: ExtractionStats, emit: Emit): Promise<Record<string, JsonValue> | undefined> {
-    const id = person.id;
-    if (typeof id !== "string" || !id) return undefined;
+  private async enrichBatch(client: ApolloApiClient, url: string, sessionId: string, records: LeadRecord[], revealPersonalEmails: boolean, stats: ExtractionStats, emit: Emit): Promise<void> {
+    const ids = records.map((record) => String(record.fields.id)).filter(Boolean);
+    const mark = (status: string): void => {
+      for (const record of records) {
+        const fields = { ...record.fields, "Pipeline Status": status };
+        const updated = { ...record, fields, visibleText: JSON.stringify(fields) };
+        this.leads.updateFields(sessionId, record.id, fields, updated.visibleText);
+        emit({ sessionId, stats, leads: [updated] });
+      }
+    };
+    mark("Revealing Email");
     try {
-      return await client.enrich(id);
+      const result = await client.bulkEnrich(url, ids, revealPersonalEmails);
+      emit({ sessionId, stats, debug: result.debug });
+      const matchesById = new Map(result.matches.map((match) => [String(match.id), match]));
+      for (const record of records) {
+        const match = matchesById.get(String(record.fields.id));
+        const fields = match ? this.mergePerson(record.fields, match) : { ...record.fields };
+        const email = typeof fields.email === "string" ? fields.email : undefined;
+        fields.Email = email ?? fields.Email ?? "";
+        fields["Email Status"] = fields.email_status ?? fields["Email Status"] ?? (email ? "available" : "unavailable");
+        fields["Pipeline Status"] = email && !email.includes("***") ? "Email Revealed" : "No email available";
+        if (email && !email.includes("***")) stats.emailsRevealed = (stats.emailsRevealed ?? 0) + 1;
+        else stats.emailsNotFound = (stats.emailsNotFound ?? 0) + 1;
+        stats.peopleEnriched = (stats.peopleEnriched ?? 0) + 1;
+        const updated = { ...record, fields, visibleText: JSON.stringify(fields) };
+        this.leads.updateFields(sessionId, record.id, fields, updated.visibleText);
+        emit({ sessionId, stats, leads: [updated] });
+      }
     } catch (error) {
+      stats.enrichmentsFailed = (stats.enrichmentsFailed ?? 0) + records.length;
       stats.errors += 1;
-      emit({ sessionId, stats, log: this.log(sessionId, "warn", "Skipping enrichment for one lead", { error: safeErrorMessage(error) }) });
-      return undefined;
+      for (const record of records) {
+        const fields = { ...record.fields, "Pipeline Status": "Failed" };
+        const updated = { ...record, fields, visibleText: JSON.stringify(fields) };
+        this.leads.updateFields(sessionId, record.id, fields, updated.visibleText);
+        emit({ sessionId, stats, leads: [updated], log: this.log(sessionId, "warn", "Email enrichment failed for a batch", { error: safeErrorMessage(error) }) });
+      }
     }
   }
 
@@ -128,6 +172,16 @@ export class ApiExtractionRunner {
 
   private mergePerson(person: Record<string, JsonValue>, enriched?: Record<string, JsonValue>): Record<string, JsonValue> {
     return { ...person, ...(enriched ?? {}), search_result: person };
+  }
+
+  private withPipelineStatus(person: Record<string, JsonValue>, status: string): Record<string, JsonValue> {
+    return { ...person, "Pipeline Status": status, Email: typeof person.email === "string" ? person.email : "" };
+  }
+
+  private chunks<T>(items: T[], size: number): T[][] {
+    const result: T[][] = [];
+    for (let index = 0; index < items.length; index += size) result.push(items.slice(index, index + size));
+    return result;
   }
 
   private toLead(sourceUrl: string, page: number, fields: Record<string, JsonValue>): LeadRecord {

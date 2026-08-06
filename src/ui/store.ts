@@ -62,7 +62,7 @@ const idleStats: ExtractionStats = {
   status: "idle"
 };
 
-export const defaultSettings: AppSettings = { mode: "api", perPage: 100, autoEnrich: true, theme: "midnight", accent: "blue", developerMode: false };
+export const defaultSettings: AppSettings = { mode: "api", perPage: 100, autoEnrich: true, revealPersonalEmails: false, revealDuringExtraction: true, batchEnrichment: true, enrichmentConcurrency: 4, theme: "midnight", accent: "blue", developerMode: false };
 const validator = new InputValidator();
 
 export const useAppStore = create<AppState>((set, get) => ({
@@ -146,7 +146,7 @@ export const useAppStore = create<AppState>((set, get) => ({
     set((state) => ({
       stats: event.stats,
       logs: event.log ? [...state.logs, event.log] : state.logs,
-      leads: event.leads ? [...state.leads, ...event.leads] : (event.lead ? [...state.leads, event.lead] : state.leads),
+      leads: mergeLeads(state.leads, event.leads ?? (event.lead ? [event.lead] : [])),
       requestDebug: event.debug ?? state.requestDebug
     }));
   },
@@ -165,7 +165,12 @@ async function startExtraction(set: (partial: Partial<AppState>) => void, get: (
       if (!keyValidation.valid) throw new Error(keyValidation.message);
     }
     set({ stats: { ...idleStats, status: "running" }, logs: [], leads: [], error: undefined, message: "Extraction started.", page: "extract" });
-    const session = await window.apollo.startExtraction(state.url, state.settings.mode === "api" ? state.apiKey || undefined : undefined, { perPage: state.settings.perPage, autoEnrich: state.settings.autoEnrich });
+    const session = await window.apollo.startExtraction(state.url, state.settings.mode === "api" ? state.apiKey || undefined : undefined, {
+      perPage: state.settings.perPage,
+      autoEnrich: state.settings.autoEnrich && state.settings.revealDuringExtraction,
+      revealPersonalEmails: state.settings.revealPersonalEmails,
+      enrichmentConcurrency: state.settings.enrichmentConcurrency
+    });
     set({ activeSession: session, message: `Extraction ${session.status}.` });
     await get().loadSessions();
     await get().loadLeads(session.id);
@@ -204,4 +209,13 @@ function loadExportHistory(): ExportHistoryItem[] {
 
 function saveExportHistory(history: ExportHistoryItem[]): void {
   localStorage.setItem("apollo-lead-extractor-export-history", JSON.stringify(history));
+}
+
+function mergeLeads(current: LeadRecord[], updates: LeadRecord[]): LeadRecord[] {
+  if (updates.length === 0) return current;
+  const map = new Map(current.map((lead) => [lead.id, lead]));
+  for (const lead of updates) {
+    map.set(lead.id, lead);
+  }
+  return Array.from(map.values());
 }

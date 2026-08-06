@@ -32,7 +32,7 @@ describe("App shell", () => {
       apiKey: "",
       page: "dashboard",
       sidebarCollapsed: false,
-      settings: { mode: "api", perPage: 100, autoEnrich: true, theme: "midnight", accent: "blue", developerMode: false },
+      settings: { mode: "api", perPage: 100, autoEnrich: true, revealPersonalEmails: false, revealDuringExtraction: true, batchEnrichment: true, enrichmentConcurrency: 4, theme: "midnight", accent: "blue", developerMode: false },
       config: { environmentApiKeyAvailable: false },
       message: undefined,
       error: undefined,

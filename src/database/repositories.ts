@@ -78,6 +78,13 @@ export class LeadRepository {
       visibleText: row.visible_text
     }));
   }
+
+  updateFields(sessionId: string, leadId: string, fields: LeadRecord["fields"], visibleText: string): void {
+    this.db.prepare(`
+      UPDATE leads SET fields_json = @fieldsJson, visible_text = @visibleText
+      WHERE session_id = @sessionId AND id = @leadId
+    `).run({ sessionId, leadId, fieldsJson: JSON.stringify(fields), visibleText });
+  }
 }
 
 export class LogRepository {

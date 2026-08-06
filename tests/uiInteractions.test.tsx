@@ -27,7 +27,7 @@ beforeEach(() => {
     apiKey: "",
     page: "extract",
     sidebarCollapsed: false,
-    settings: { mode: "api", perPage: 100, autoEnrich: true, theme: "midnight", accent: "blue", developerMode: false },
+    settings: { mode: "api", perPage: 100, autoEnrich: true, revealPersonalEmails: false, revealDuringExtraction: true, batchEnrichment: true, enrichmentConcurrency: 4, theme: "midnight", accent: "blue", developerMode: false },
     config: { environmentApiKeyAvailable: true },
     message: undefined,
     error: undefined,
@@ -86,6 +86,18 @@ describe("visible UI interactions", () => {
     }
     await waitFor(() => expect(window.apollo.exportSession).toHaveBeenCalledTimes(4));
     expect(screen.getAllByText("/tmp/apollo.csv").length).toBeGreaterThan(0);
+  });
+
+  it("replaces a row when enrichment reveals an email", () => {
+    const update = { ...lead, fields: { ...lead.fields, Email: "ada@apollo.io", "Pipeline Status": "Email Revealed" } };
+    useAppStore.getState().applyUpdate({
+      sessionId: "s1",
+      stats: { ...useAppStore.getState().stats, emailsRevealed: 1 },
+      leads: [update]
+    });
+    const state = useAppStore.getState();
+    expect(state.leads).toHaveLength(1);
+    expect(state.leads[0].fields.Email).toBe("ada@apollo.io");
   });
 
   it("saves, validates, and resets settings", async () => {

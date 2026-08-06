@@ -3,7 +3,7 @@ import type { ExtractionEvent, ExtractionSession, ExportRequest, LeadRecord, Run
 
 const api = {
   getConfig: (): Promise<RuntimeConfig> => ipcRenderer.invoke("app:config"),
-  startExtraction: (url: string, apiKey?: string, options?: { perPage?: number; autoEnrich?: boolean }): Promise<ExtractionSession> => ipcRenderer.invoke("extract:start", url, apiKey, options),
+  startExtraction: (url: string, apiKey?: string, options?: { perPage?: number; autoEnrich?: boolean; revealPersonalEmails?: boolean; enrichmentConcurrency?: number }): Promise<ExtractionSession> => ipcRenderer.invoke("extract:start", url, apiKey, options),
   cancelExtraction: (): Promise<void> => ipcRenderer.invoke("extract:cancel"),
   listSessions: (): Promise<ExtractionSession[]> => ipcRenderer.invoke("sessions:list"),
   listLeads: (sessionId: string): Promise<LeadRecord[]> => ipcRenderer.invoke("leads:list", sessionId),
