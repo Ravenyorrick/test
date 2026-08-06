@@ -85,6 +85,21 @@ The app will show:
 7. Live logs
 8. Lead preview
 
+### Developer Mode request debugger
+
+If an Apollo API request fails, open **Settings** and enable **Developer Mode request debugger**.
+
+The **Extract Leads** page will show:
+
+1. Original Apollo URL
+2. Parsed parameters
+3. Normalized API payload
+4. Sanitized headers
+5. Response metadata
+6. Validation warnings/errors
+
+Array URL parameters such as `personTitles[]` are always sent as arrays, even when only one value is present.
+
 ### 9. Export results
 
 Open **Exports** and choose:

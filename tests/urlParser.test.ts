@@ -6,9 +6,9 @@ describe("ApolloUrlParser", () => {
     const parsed = new ApolloUrlParser().parse("https://app.apollo.io/#/people?page=3&personTitles[]=owner&AI%20Score=high&futureFilter[]=alpha&futureFilter[]=beta");
     expect(parsed.page).toBe(3);
     expect(parsed.filters).toEqual(expect.arrayContaining([
-      { key: "personTitles", values: ["owner"] },
-      { key: "AI Score", values: ["high"] },
-      { key: "futureFilter", values: ["alpha", "beta"] }
+      { key: "personTitles", values: ["owner"], isArray: true, rawKeys: ["personTitles[]"] },
+      { key: "AI Score", values: ["high"], isArray: false, rawKeys: ["AI Score"] },
+      { key: "futureFilter", values: ["alpha", "beta"], isArray: true, rawKeys: ["futureFilter[]", "futureFilter[]"] }
     ]));
   });
 

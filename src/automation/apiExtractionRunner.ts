@@ -56,7 +56,8 @@ export class ApiExtractionRunner {
     try {
       for (let pageNumber = parsed.page; !this.cancelled; pageNumber += 1) {
         stats.currentPage = pageNumber;
-        const search = await this.withRetries(() => client.search(parsed.filters, pageNumber, pageSize), session.id, stats, emit);
+        const search = await this.withRetries(() => client.search(url, parsed.filters, pageNumber, pageSize), session.id, stats, emit);
+        emit({ sessionId: session.id, stats, debug: search.debug });
         const records = await Promise.all(search.people.map(async (person) => {
           const enriched = autoEnrich ? await this.enrichIfPossible(client, person, session.id, stats, emit) : undefined;
           return this.toLead(url, pageNumber, this.mergePerson(person, enriched));

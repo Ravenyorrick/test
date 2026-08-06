@@ -3,6 +3,26 @@ export type JsonValue = string | number | boolean | null | JsonValue[] | { [key:
 export interface SearchFilter {
   key: string;
   values: string[];
+  isArray: boolean;
+  rawKeys: string[];
+}
+
+export type ApiPayloadValue = string | number | boolean | string[] | number[] | boolean[] | Record<string, string | number | boolean>;
+
+export interface ApiRequestDebug {
+  originalUrl: string;
+  parsedParameters: SearchFilter[];
+  normalizedParameters: Record<string, ApiPayloadValue>;
+  finalPayload: Record<string, ApiPayloadValue>;
+  sanitizedHeaders: Record<string, string>;
+  validationWarnings: string[];
+  validationErrors: string[];
+  response?: {
+    status: number;
+    ok: boolean;
+    returned: number;
+    elapsedMs: number;
+  };
 }
 
 export interface LeadRecord {
@@ -46,6 +66,7 @@ export interface ExtractionEvent {
   lead?: LeadRecord;
   leads?: LeadRecord[];
   log?: LogEntry;
+  debug?: ApiRequestDebug;
 }
 
 export interface LogEntry {
@@ -70,6 +91,7 @@ export interface AppSettings {
   theme: "midnight" | "obsidian";
   accent: "blue" | "purple";
   exportDirectory?: string;
+  developerMode: boolean;
 }
 
 export interface RuntimeConfig {

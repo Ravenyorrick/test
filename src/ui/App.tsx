@@ -3,6 +3,7 @@ import { AnimatePresence, motion } from "framer-motion";
 import { AboutPage } from "@/ui/components/AboutPage";
 import { Dashboard } from "@/ui/components/Dashboard";
 import { DashboardPage } from "@/ui/components/DashboardPage";
+import { DeveloperPanel } from "@/ui/components/DeveloperPanel";
 import { ExportPanel } from "@/ui/components/ExportPanel";
 import { LeadTable } from "@/ui/components/LeadTable";
 import { LogPanel } from "@/ui/components/LogPanel";
@@ -28,7 +29,7 @@ export function App(): ReactElement {
           <AnimatePresence mode="wait">
             <motion.div key={page} initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -8 }} transition={{ duration: 0.18 }} className="space-y-6">
               {page === "dashboard" ? <DashboardPage /> : null}
-              {page === "extract" ? <><SearchForm /><Dashboard /><LeadTable /></> : null}
+              {page === "extract" ? <><SearchForm /><DeveloperPanel /><Dashboard /><LeadTable /></> : null}
               {page === "history" ? <SessionHistory /> : null}
               {page === "exports" ? <><ExportPanel /><LeadTable /></> : null}
               {page === "logs" ? <LogPanel /> : null}

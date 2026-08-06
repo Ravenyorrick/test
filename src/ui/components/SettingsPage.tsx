@@ -71,6 +71,16 @@ export function SettingsPage(): ReactElement {
           <Button className="mt-4" variant="secondary" onClick={validateConfiguration}><ShieldCheck size={16} /> Validate configuration</Button>
         </Card>
       </div>
+      <Card className="p-5">
+        <h3 className="text-lg font-semibold">Advanced</h3>
+        <label className="mt-4 flex items-center justify-between gap-3 rounded-2xl border border-white/10 bg-white/[0.03] p-4">
+          <span>
+            <span className="block text-sm font-medium text-slate-300">Developer Mode request debugger</span>
+            <span className="text-xs text-slate-500">Shows parsed URL parameters, normalized API payload, sanitized headers, response metadata, and validation warnings.</span>
+          </span>
+          <input type="checkbox" checked={settings.developerMode} onChange={(event) => updateSettings({ developerMode: event.target.checked })} />
+        </label>
+      </Card>
     </div>
   );
 }

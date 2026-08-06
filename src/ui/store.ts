@@ -1,5 +1,5 @@
 import { create } from "zustand";
-import type { AppSettings, ExtractionEvent, ExtractionSession, ExtractionStats, LeadRecord, LogEntry, RuntimeConfig } from "@/types";
+import type { ApiRequestDebug, AppSettings, ExtractionEvent, ExtractionSession, ExtractionStats, LeadRecord, LogEntry, RuntimeConfig } from "@/types";
 import { InputValidator } from "@/services/validation";
 
 export type AppPage = "dashboard" | "extract" | "history" | "exports" | "logs" | "settings" | "about";
@@ -23,6 +23,7 @@ interface AppState {
   error?: string;
   logSearch: string;
   exportHistory: ExportHistoryItem[];
+  requestDebug?: ApiRequestDebug;
   sessions: ExtractionSession[];
   activeSession?: ExtractionSession;
   leads: LeadRecord[];
@@ -61,7 +62,7 @@ const idleStats: ExtractionStats = {
   status: "idle"
 };
 
-export const defaultSettings: AppSettings = { mode: "api", perPage: 100, autoEnrich: true, theme: "midnight", accent: "blue" };
+export const defaultSettings: AppSettings = { mode: "api", perPage: 100, autoEnrich: true, theme: "midnight", accent: "blue", developerMode: false };
 const validator = new InputValidator();
 
 export const useAppStore = create<AppState>((set, get) => ({
@@ -145,7 +146,8 @@ export const useAppStore = create<AppState>((set, get) => ({
     set((state) => ({
       stats: event.stats,
       logs: event.log ? [...state.logs, event.log] : state.logs,
-      leads: event.leads ? [...state.leads, ...event.leads] : (event.lead ? [...state.leads, event.lead] : state.leads)
+      leads: event.leads ? [...state.leads, ...event.leads] : (event.lead ? [...state.leads, event.lead] : state.leads),
+      requestDebug: event.debug ?? state.requestDebug
     }));
   },
   applyFatal: (event) => {

@@ -1,26 +1,38 @@
-import type { JsonValue, SearchFilter } from "@/types";
+import { ApolloApiMapper } from "@/parsers/apolloApiMapper";
+import type { ApiRequestDebug, ApiPayloadValue, JsonValue, SearchFilter } from "@/types";
 
 export interface ApolloSearchResult {
   people: Array<Record<string, JsonValue>>;
   raw: Record<string, JsonValue>;
+  debug: ApiRequestDebug;
 }
 
 export class ApolloApiClient {
   private readonly baseUrl = "https://api.apollo.io/api/v1";
 
-  constructor(private readonly apiKey: string) {}
+  constructor(private readonly apiKey: string, private readonly mapper = new ApolloApiMapper()) {}
 
-  async search(filters: SearchFilter[], page: number, perPage: number): Promise<ApolloSearchResult> {
-    const body = this.filtersToApiBody(filters);
-    body.page = page;
-    body.per_page = perPage;
+  async search(originalUrl: string, filters: SearchFilter[], page: number, perPage: number): Promise<ApolloSearchResult> {
+    const mapped = this.mapper.map(filters, { page, per_page: perPage });
+    if (mapped.errors.length) {
+      throw new Error(`Apollo API payload validation failed: ${mapped.errors.join(" ")}`);
+    }
 
+    const started = Date.now();
     const response = await fetch(`${this.baseUrl}/mixed_people/api_search`, {
       method: "POST",
       headers: this.headers(),
-      body: JSON.stringify(body)
+      body: JSON.stringify(mapped.payload)
     });
-    return this.parseResponse(response);
+    return this.parseResponse(response, {
+      originalUrl,
+      parsedParameters: filters,
+      normalizedParameters: mapped.normalizedParameters,
+      finalPayload: mapped.payload,
+      sanitizedHeaders: this.sanitizedHeaders(),
+      validationWarnings: mapped.warnings,
+      validationErrors: mapped.errors
+    }, started);
   }
 
   async enrich(id: string): Promise<Record<string, JsonValue> | undefined> {
@@ -36,17 +48,15 @@ export class ApolloApiClient {
     return json.person as Record<string, JsonValue> | undefined;
   }
 
-  filtersToApiBody(filters: SearchFilter[]): Record<string, JsonValue> {
-    const body: Record<string, JsonValue> = {};
-    for (const filter of filters) {
-      if (filter.key === "page" || filter.key === "per_page" || filter.key === "perPage") continue;
-      const apiKey = this.toSnakeCase(filter.key);
-      body[apiKey] = filter.values.length === 1 ? filter.values[0] : filter.values;
+  filtersToApiBody(filters: SearchFilter[]): Record<string, ApiPayloadValue> {
+    const mapped = this.mapper.map(filters);
+    if (mapped.errors.length) {
+      throw new Error(`Apollo API payload validation failed: ${mapped.errors.join(" ")}`);
     }
-    return body;
+    return mapped.payload;
   }
 
-  private async parseResponse(response: Response): Promise<ApolloSearchResult> {
+  private async parseResponse(response: Response, debug: Omit<ApiRequestDebug, "response">, started: number): Promise<ApolloSearchResult> {
     const json = await this.parseJson(response);
     if (!response.ok) {
       throw new Error(`Apollo search failed with ${response.status}: ${this.errorMessage(json)}`);
@@ -56,7 +66,7 @@ export class ApolloApiClient {
       : Array.isArray(json.contacts)
         ? json.contacts as Array<Record<string, JsonValue>>
         : [];
-    return { people, raw: json };
+    return { people, raw: json, debug: { ...debug, response: { status: response.status, ok: response.ok, returned: people.length, elapsedMs: Date.now() - started } } };
   }
 
   private async parseJson(response: Response): Promise<Record<string, JsonValue>> {
@@ -76,12 +86,12 @@ export class ApolloApiClient {
     };
   }
 
-  private toSnakeCase(key: string): string {
-    return key
-      .replace(/\[\]$/, "")
-      .replace(/([a-z0-9])([A-Z])/g, "$1_$2")
-      .replace(/[\s-]+/g, "_")
-      .toLowerCase();
+  private sanitizedHeaders(): Record<string, string> {
+    return {
+      "Content-Type": "application/json",
+      "Cache-Control": "no-cache",
+      "x-api-key": "[redacted]"
+    };
   }
 
   private errorMessage(json: Record<string, JsonValue>): string {

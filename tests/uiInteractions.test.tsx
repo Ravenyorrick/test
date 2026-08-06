@@ -27,7 +27,7 @@ beforeEach(() => {
     apiKey: "",
     page: "extract",
     sidebarCollapsed: false,
-    settings: { mode: "api", perPage: 100, autoEnrich: true, theme: "midnight", accent: "blue" },
+    settings: { mode: "api", perPage: 100, autoEnrich: true, theme: "midnight", accent: "blue", developerMode: false },
     config: { environmentApiKeyAvailable: true },
     message: undefined,
     error: undefined,
