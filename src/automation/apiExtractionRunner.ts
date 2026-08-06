@@ -22,7 +22,7 @@ export class ApiExtractionRunner {
     this.cancelled = true;
   }
 
-  async run(url: string, apiKey: string, emit: Emit, perPage = 100): Promise<ExtractionSession> {
+  async run(url: string, apiKey: string, emit: Emit, perPage = 100, autoEnrich = true): Promise<ExtractionSession> {
     this.cancelled = false;
     const parsed = this.parser.parse(url);
     const client = new ApolloApiClient(apiKey);
@@ -58,7 +58,7 @@ export class ApiExtractionRunner {
         stats.currentPage = pageNumber;
         const search = await this.withRetries(() => client.search(parsed.filters, pageNumber, pageSize), session.id, stats, emit);
         const records = await Promise.all(search.people.map(async (person) => {
-          const enriched = await this.enrichIfPossible(client, person, session.id, stats, emit);
+          const enriched = autoEnrich ? await this.enrichIfPossible(client, person, session.id, stats, emit) : undefined;
           return this.toLead(url, pageNumber, this.mergePerson(person, enriched));
         }));
         const uniqueRecords = records.filter((record) => {

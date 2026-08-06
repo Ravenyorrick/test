@@ -66,6 +66,10 @@ export type ExtractionMode = "browser" | "api";
 export interface AppSettings {
   mode: ExtractionMode;
   perPage: number;
+  autoEnrich: boolean;
+  theme: "midnight" | "obsidian";
+  accent: "blue" | "purple";
+  exportDirectory?: string;
 }
 
 export interface RuntimeConfig {

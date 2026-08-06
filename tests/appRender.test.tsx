@@ -30,11 +30,14 @@ describe("App shell", () => {
     useAppStore.setState({
       url: "",
       apiKey: "",
-      page: "extract",
-      settings: { mode: "api", perPage: 100 },
+      page: "dashboard",
+      sidebarCollapsed: false,
+      settings: { mode: "api", perPage: 100, autoEnrich: true, theme: "midnight", accent: "blue" },
       config: { environmentApiKeyAvailable: false },
       message: undefined,
       error: undefined,
+      logSearch: "",
+      exportHistory: [],
       sessions: [],
       activeSession: undefined,
       leads: [],
@@ -52,28 +55,33 @@ describe("App shell", () => {
     });
   });
 
-  it("renders dashboard shell and settings page", () => {
+  it("renders dashboard shell and settings page", async () => {
     installApolloMock();
     render(<App />);
     expect(screen.getByText("Lead Extractor")).toBeInTheDocument();
-    expect(screen.getByRole("heading", { name: "Start extraction" })).toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: "Dashboard" })).toBeInTheDocument();
+    fireEvent.click(screen.getByText("Extract Leads"));
+    expect(await screen.findByRole("heading", { name: "Extract Apollo leads" })).toBeInTheDocument();
     fireEvent.click(screen.getByText("Settings"));
-    expect(screen.getByRole("heading", { name: "Settings" })).toBeInTheDocument();
+    expect(await screen.findByRole("heading", { name: "Settings" })).toBeInTheDocument();
   });
 
   it("shows validation errors instead of starting with bad input", async () => {
     installApolloMock();
     render(<App />);
+    fireEvent.click(screen.getByText("Extract Leads"));
+    await screen.findByRole("heading", { name: "Extract Apollo leads" });
     fireEvent.change(screen.getByLabelText("Apollo People Search URL"), { target: { value: "https://example.com" } });
-    fireEvent.click(screen.getByRole("button", { name: "Start extraction" }));
+    fireEvent.click(screen.getByRole("button", { name: "Start" }));
     expect(await screen.findByText("Enter a URL from app.apollo.io.")).toBeInTheDocument();
     expect(window.apollo.startExtraction).not.toHaveBeenCalled();
   });
 
-  it("persists non-secret settings", () => {
+  it("persists non-secret settings", async () => {
     installApolloMock();
     render(<App />);
     fireEvent.click(screen.getByText("Settings"));
+    await screen.findByRole("heading", { name: "Settings" });
     fireEvent.change(screen.getByLabelText("Extraction mode"), { target: { value: "browser" } });
     expect(JSON.parse(localStorage.getItem("apollo-lead-extractor-settings") ?? "{}").mode).toBe("browser");
   });

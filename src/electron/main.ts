@@ -92,7 +92,7 @@ ipcMain.handle("leads:list", (_event, sessionId: string) => {
   if (!sessionId) throw new Error("A session id is required.");
   return leads.list(sessionId);
 });
-ipcMain.handle("extract:start", async (_event, url: string, apiKey?: string, options?: { perPage?: number }) => {
+ipcMain.handle("extract:start", async (_event, url: string, apiKey?: string, options?: { perPage?: number; autoEnrich?: boolean }) => {
   const urlValidation = validator.validateApolloPeopleUrl(url);
   if (!urlValidation.valid) throw new Error(urlValidation.message);
 
@@ -101,7 +101,7 @@ ipcMain.handle("extract:start", async (_event, url: string, apiKey?: string, opt
   };
   const resolvedApiKey = apiKey?.trim() || process.env.APOLLO_API_KEY?.trim();
   if (resolvedApiKey) {
-    return apiRunner.run(url, resolvedApiKey, emit, options?.perPage);
+    return apiRunner.run(url, resolvedApiKey, emit, options?.perPage, options?.autoEnrich);
   }
   return runner.run(url, emit);
 });

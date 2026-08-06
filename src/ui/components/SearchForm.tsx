@@ -1,15 +1,17 @@
 import type { ReactElement } from "react";
+import { KeyRound, Link2, Pause, Play, RotateCcw, ShieldCheck, Square } from "lucide-react";
 import { useAppStore } from "@/ui/store";
+import { Button, Card } from "@/ui/components/ui";
 
 export function SearchForm(): ReactElement {
-  const { url, apiKey, settings, config, setUrl, setApiKey, updateSettings, start, resume, cancel, stats } = useAppStore();
+  const { url, apiKey, settings, config, setUrl, setApiKey, updateSettings, start, resume, cancel, validateConfiguration, stats } = useAppStore();
   const running = stats.status === "running";
   const paused = stats.status === "paused";
 
   return (
-    <section className="rounded-3xl border border-slate-800 bg-slate-900/70 p-6 shadow-2xl">
+    <Card className="p-6">
       <div className="mb-5 flex flex-col gap-2">
-        <h2 className="text-2xl font-semibold">Start extraction</h2>
+        <h2 className="text-2xl font-semibold">Extract Apollo leads</h2>
         <p className="text-slate-400">Choose API mode for fast authorized API data, or browser mode for visible Apollo UI columns.</p>
       </div>
       <div className="mb-4 grid gap-3 md:grid-cols-2">
@@ -23,35 +25,35 @@ export function SearchForm(): ReactElement {
         </button>
       </div>
       <label className="mb-2 block text-sm font-medium text-slate-300" htmlFor="apollo-url">
-        Apollo People Search URL
+        <Link2 className="mr-2 inline" size={16} /> Apollo People Search URL
       </label>
       <div className="flex flex-col gap-3 md:flex-row">
         <input
           id="apollo-url"
-          className="flex-1 rounded-xl border border-slate-700 bg-slate-950 px-4 py-3 text-slate-100 outline-none transition focus:border-cyan-400"
+          className="field flex-1"
           placeholder="https://app.apollo.io/#/people?page=1&personTitles[]=owner"
           value={url}
           onChange={(event) => setUrl(event.target.value)}
           disabled={running}
         />
-        <button className="rounded-xl bg-cyan-400 px-6 py-3 font-semibold text-slate-950 transition hover:bg-cyan-300 disabled:opacity-50" onClick={() => void start()} disabled={!url || running}>
-          Start extraction
-        </button>
-        <button className="rounded-xl border border-slate-700 px-6 py-3 font-semibold text-slate-200 transition hover:bg-slate-800 disabled:opacity-50" onClick={() => void cancel()} disabled={!running}>
+        <Button variant="primary" onClick={() => void start()} disabled={!url || running}><Play size={17} />
+          Start
+        </Button>
+        <Button onClick={() => void cancel()} disabled={!running}><Pause size={17} />
           Pause
-        </button>
-        <button className="rounded-xl border border-slate-700 px-6 py-3 font-semibold text-slate-200 transition hover:bg-slate-800 disabled:opacity-50" onClick={() => void resume()} disabled={!paused}>
+        </Button>
+        <Button onClick={() => void resume()} disabled={!paused}><RotateCcw size={17} />
           Resume
-        </button>
+        </Button>
       </div>
       {settings.mode === "api" ? <div className="mt-3">
         <label className="mb-2 block text-sm font-medium text-slate-300" htmlFor="apollo-api-key">
-          Optional Apollo API key
+          <KeyRound className="mr-2 inline" size={16} /> Optional Apollo API key
         </label>
         <input
           id="apollo-api-key"
           type="password"
-          className="w-full rounded-xl border border-slate-700 bg-slate-950 px-4 py-3 text-slate-100 outline-none transition focus:border-cyan-400"
+          className="field"
           placeholder={config.environmentApiKeyAvailable ? "Using APOLLO_API_KEY from environment unless you paste another key" : "Paste Apollo API key"}
           value={apiKey}
           onChange={(event) => setApiKey(event.target.value)}
@@ -60,7 +62,11 @@ export function SearchForm(): ReactElement {
         <p className="mt-2 text-xs text-slate-500">
           API mode converts URL filters dynamically, searches Apollo, then enriches returned IDs for available profile, LinkedIn, email status, company, industry, revenue, technology, and metadata fields.
         </p>
+        <div className="mt-3 flex flex-wrap gap-2">
+          <Button variant="secondary" onClick={validateConfiguration}><ShieldCheck size={16} /> Validate configuration</Button>
+          <Button variant="ghost" onClick={() => setApiKey("")} disabled={!apiKey}><Square size={16} /> Remove API key</Button>
+        </div>
       </div> : null}
-    </section>
+    </Card>
   );
 }
