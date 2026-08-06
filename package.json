@@ -7,7 +7,7 @@
   "scripts": {
     "dev": "concurrently -k \"npm:dev:vite\" \"npm:dev:electron\"",
     "dev:vite": "vite --host 0.0.0.0",
-    "dev:electron": "wait-on tcp:5173 && cross-env VITE_DEV_SERVER_URL=http://localhost:5173 electron .",
+    "dev:electron": "wait-on tcp:5173 && vite build --config vite.electron.config.ts --mode development && cross-env VITE_DEV_SERVER_URL=http://localhost:5173 electron .",
     "build": "tsc -p tsconfig.json && vite build && vite build --config vite.electron.config.ts",
     "test": "vitest run",
     "test:watch": "vitest",
