@@ -20,7 +20,7 @@ The compiled Electron application assets are emitted to `dist/`.
 
 ## Architecture
 
-- Electron + Playwright run the authenticated browser automation.
+- Electron + Playwright run authenticated browser automation; optional API-key mode uses Apollo search plus enrichment endpoints.
 - React + Zustand render the live dashboard.
 - Better-SQLite3 stores extraction sessions, leads, logs, and checkpoints.
 - Export services stream CSV, JSON, Excel, and SQLite artifacts.

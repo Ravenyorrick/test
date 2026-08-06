@@ -6,6 +6,7 @@ import { AppDatabase } from "@/database/database";
 import { LeadRepository, LogRepository, SessionRepository } from "@/database/repositories";
 import { ExportService } from "@/exports/exportService";
 import { ExtractionRunner } from "@/automation/extractionRunner";
+import { ApiExtractionRunner } from "@/automation/apiExtractionRunner";
 import type { ExportRequest } from "@/types";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
@@ -17,6 +18,7 @@ let sessions: SessionRepository;
 let leads: LeadRepository;
 let exporter: ExportService;
 let browser: BrowserService;
+let apiRunner: ApiExtractionRunner;
 
 async function createWindow(): Promise<void> {
   const databasePath = path.join(app.getPath("userData"), "apollo-lead-extractor.sqlite");
@@ -27,6 +29,7 @@ async function createWindow(): Promise<void> {
   browser = new BrowserService();
   exporter = new ExportService(leads, databasePath);
   runner = new ExtractionRunner(browser, sessions, leads, logs);
+  apiRunner = new ApiExtractionRunner(sessions, leads, logs);
 
   mainWindow = new BrowserWindow({
     width: 1280,
@@ -58,10 +61,17 @@ app.on("before-quit", async () => {
 
 ipcMain.handle("sessions:list", () => sessions.list());
 ipcMain.handle("leads:list", (_event, sessionId: string) => leads.list(sessionId));
-ipcMain.handle("extract:start", async (_event, url: string) => {
-  return runner.run(url, (update) => mainWindow.webContents.send("extract:update", update));
+ipcMain.handle("extract:start", async (_event, url: string, apiKey?: string) => {
+  const emit = (update: any) => mainWindow.webContents.send("extract:update", update);
+  if (apiKey?.trim()) {
+    return apiRunner.run(url, apiKey.trim(), emit);
+  }
+  return runner.run(url, emit);
 });
-ipcMain.handle("extract:cancel", () => runner.cancel());
+ipcMain.handle("extract:cancel", () => {
+  runner.cancel();
+  apiRunner.cancel();
+});
 ipcMain.handle("export:save", async (_event, request: Omit<ExportRequest, "outputPath">) => {
   const result = await dialog.showSaveDialog(mainWindow, {
     title: `Export ${request.format.toUpperCase()}`,

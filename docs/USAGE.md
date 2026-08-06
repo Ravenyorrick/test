@@ -44,16 +44,18 @@ docs/           User and maintainer documentation
 ## Operation
 
 1. Paste any Apollo People Search URL.
-2. Click **Start extraction**.
-3. If Apollo asks for login, complete login in the Playwright browser window. The app stores the Chromium profile and resumes automatically.
-4. Watch the dashboard for page, speed, retries, errors, progress, and current company.
-5. Export the active session as CSV, XLSX, JSON, or SQLite.
+2. Optionally paste an Apollo API key. With a key, the app converts URL filters dynamically to Apollo API parameters, searches `mixed_people/api_search`, and enriches returned IDs through `people/match`.
+3. Click **Start extraction**.
+4. If no API key is provided and Apollo asks for login, complete login in the Playwright browser window. The app stores the Chromium profile and resumes automatically.
+5. Watch the dashboard for page, speed, retries, errors, progress, and current company.
+6. Export the active session as CSV, XLSX, JSON, or SQLite.
 
 ## Implementation notes
 
 - URL filters are parsed dynamically from every query parameter in Apollo hash URLs. Unknown future parameters are preserved.
 - Lead extraction inspects rendered tables/grids/cards, detects headers, maps cells to visible headers, captures links, and keeps unknown future columns.
 - Pagination detection uses visible page text, selected page affordances, next-button hints, and disabled states.
+- API mode uses `POST /mixed_people/api_search` for search and `POST /people/match` for non-phone enrichment. Apollo search responses are intentionally limited; enrichment returns LinkedIn, organization, industry, revenue, technology, and contact-status fields when permitted by the account.
 - The browser blocks images, fonts, videos, and common analytics hosts to improve extraction speed while keeping a normal headed browser session.
 - Duplicate detection hashes stable identity fields when present, including Apollo/person/org IDs, LinkedIn, and email.
 - SQLite auto-save happens on every page batch; this is stricter than the required 50-lead checkpoint interval and improves crash recovery.

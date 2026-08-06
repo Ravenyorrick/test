@@ -3,12 +3,14 @@ import type { ExtractionEvent, ExtractionSession, ExtractionStats, LeadRecord, L
 
 interface AppState {
   url: string;
+  apiKey: string;
   sessions: ExtractionSession[];
   activeSession?: ExtractionSession;
   leads: LeadRecord[];
   logs: LogEntry[];
   stats: ExtractionStats;
   setUrl: (url: string) => void;
+  setApiKey: (apiKey: string) => void;
   loadSessions: () => Promise<void>;
   loadLeads: (sessionId: string) => Promise<void>;
   start: () => Promise<void>;
@@ -30,11 +32,13 @@ const idleStats: ExtractionStats = {
 
 export const useAppStore = create<AppState>((set, get) => ({
   url: "",
+  apiKey: "",
   sessions: [],
   leads: [],
   logs: [],
   stats: idleStats,
   setUrl: (url) => set({ url }),
+  setApiKey: (apiKey) => set({ apiKey }),
   loadSessions: async () => set({ sessions: await window.apollo.listSessions() }),
   loadLeads: async (sessionId) => {
     const leads = await window.apollo.listLeads(sessionId);
@@ -43,7 +47,7 @@ export const useAppStore = create<AppState>((set, get) => ({
   },
   start: async () => {
     set({ stats: { ...idleStats, status: "running" }, logs: [], leads: [] });
-    const session = await window.apollo.startExtraction(get().url);
+    const session = await window.apollo.startExtraction(get().url, get().apiKey || undefined);
     set({ activeSession: session });
     await get().loadSessions();
     await get().loadLeads(session.id);

@@ -2,7 +2,7 @@ import { contextBridge, ipcRenderer } from "electron";
 import type { ExtractionEvent, ExtractionSession, ExportRequest, LeadRecord } from "@/types";
 
 const api = {
-  startExtraction: (url: string): Promise<ExtractionSession> => ipcRenderer.invoke("extract:start", url),
+  startExtraction: (url: string, apiKey?: string): Promise<ExtractionSession> => ipcRenderer.invoke("extract:start", url, apiKey),
   cancelExtraction: (): Promise<void> => ipcRenderer.invoke("extract:cancel"),
   listSessions: (): Promise<ExtractionSession[]> => ipcRenderer.invoke("sessions:list"),
   listLeads: (sessionId: string): Promise<LeadRecord[]> => ipcRenderer.invoke("leads:list", sessionId),
