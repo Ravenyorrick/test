@@ -138,7 +138,11 @@ export const useAppStore = create<AppState>((set, get) => ({
       if (output) {
         const history = [{ id: `${Date.now()}-${format}`, format, outputPath: output, createdAt: new Date().toISOString() }, ...get().exportHistory].slice(0, 20);
         saveExportHistory(history);
-        set({ message: `Export saved to ${output}`, exportHistory: history });
+        set((state) => ({
+          message: `Export saved to ${output}`,
+          exportHistory: history,
+          leads: state.leads.map((lead) => ({ ...lead, fields: { ...lead.fields, "Export Status": "Exported", "Updated At": new Date().toISOString() } }))
+        }));
       }
     }, set);
   },

@@ -4,7 +4,7 @@ import { App } from "@/ui/App";
 import { useAppStore } from "@/ui/store";
 
 const session = { id: "s1", url: "https://app.apollo.io/#/people?page=1", filters: [], status: "completed" as const, createdAt: "2026-01-01T00:00:00.000Z", updatedAt: "2026-01-01T00:00:00.000Z", checkpointPage: 1, leadCount: 1 };
-const lead = { id: "l1", hash: "h1", sourceUrl: session.url, page: 1, extractedAt: "2026-01-01T00:00:00.000Z", visibleText: "Ada Apollo", fields: { Name: "Ada Lovelace", Company: "Apollo", LinkedIn: "https://linkedin.com/in/ada" } };
+const lead = { id: "l1", hash: "h1", sourceUrl: session.url, page: 1, extractedAt: "2026-01-01T00:00:00.000Z", visibleText: "Ada Apollo", fields: { Name: "Ada Lovelace", Email: "***@apollo.io", Company: "Apollo", LinkedIn: "https://linkedin.com/in/ada", "Search Status": "Found", "Enrichment Status": "Queued", "Email Status": "masked", "Export Status": "Pending Export", "Pipeline Status": "Queued for Enrichment", "Found At": "2026-01-01T00:00:00.000Z", "Updated At": "2026-01-01T00:00:00.000Z" } };
 
 function installApolloMock(): void {
   window.apollo = {
@@ -86,10 +86,11 @@ describe("visible UI interactions", () => {
     }
     await waitFor(() => expect(window.apollo.exportSession).toHaveBeenCalledTimes(4));
     expect(screen.getAllByText("/tmp/apollo.csv").length).toBeGreaterThan(0);
+    expect(useAppStore.getState().leads[0].fields["Export Status"]).toBe("Exported");
   });
 
   it("replaces a row when enrichment reveals an email", () => {
-    const update = { ...lead, fields: { ...lead.fields, Email: "ada@apollo.io", "Pipeline Status": "Email Revealed" } };
+    const update = { ...lead, fields: { ...lead.fields, Email: "ada@apollo.io", "Pipeline Status": "Email Revealed", "Enrichment Status": "Completed" } };
     useAppStore.getState().applyUpdate({
       sessionId: "s1",
       stats: { ...useAppStore.getState().stats, emailsRevealed: 1 },
@@ -98,6 +99,7 @@ describe("visible UI interactions", () => {
     const state = useAppStore.getState();
     expect(state.leads).toHaveLength(1);
     expect(state.leads[0].fields.Email).toBe("ada@apollo.io");
+    expect(state.leads[0].fields["Enrichment Status"]).toBe("Completed");
   });
 
   it("saves, validates, and resets settings", async () => {

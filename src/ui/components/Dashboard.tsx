@@ -8,13 +8,13 @@ export function Dashboard(): ReactElement {
   const stats = useAppStore((state) => state.stats);
   const elapsed = useMemo(() => formatMs(stats.elapsedMs), [stats.elapsedMs]);
   const eta = stats.estimatedRemainingMs ? formatMs(stats.estimatedRemainingMs) : "Unknown";
-  const progress = stats.lastPage ? Math.min(100, (stats.currentPage / stats.lastPage) * 100) : 0;
+  const progress = stats.leadsExtracted > 0 ? Math.min(100, ((stats.leadsCompleted ?? 0) / stats.leadsExtracted) * 100) : 0;
 
   return (
     <section className="space-y-5">
       <div className="grid gap-4 md:grid-cols-4">
-        <MetricCard label="Current page" value={`${stats.currentPage}${stats.lastPage ? ` / ${stats.lastPage}` : ""}`} detail="Auto-detected pagination" icon={<Layers size={18} />} />
-        <MetricCard label="Leads extracted" value={stats.leadsExtracted.toLocaleString()} detail={`${stats.duplicates} duplicates skipped`} icon={<Users size={18} />} />
+        <MetricCard label="Search page" value={`${stats.currentPage}${stats.lastPage ? ` / ${stats.lastPage}` : ""}`} detail="Current Apollo page" icon={<Layers size={18} />} />
+        <MetricCard label="Leads found" value={stats.leadsExtracted.toLocaleString()} detail={`${stats.leadsCompleted ?? 0} completed - ${stats.duplicates} duplicates`} icon={<Users size={18} />} />
         <MetricCard label="Emails Revealed" value={stats.emailsRevealed ?? 0} detail={`${stats.emailsNotFound ?? 0} not found`} icon={<Gauge size={18} />} />
         <MetricCard label="Elapsed" value={elapsed} detail={`ETA ${eta} - ${stats.rowsPerSecond.toFixed(2)} rows/sec`} icon={<Clock size={18} />} />
       </div>
@@ -30,11 +30,11 @@ export function Dashboard(): ReactElement {
               <span className="inline-flex items-center gap-1 rounded-full border border-emerald-400/20 bg-emerald-400/10 px-3 py-1 text-sm text-emerald-200"><CopyCheck size={14} /> {stats.duplicates} duplicates</span>
             </div>
             <h2 className="mt-4 text-2xl font-semibold">{stats.currentCompany ? stats.currentCompany : "Waiting for the next lead"}</h2>
-            <p className="mt-2 text-sm text-slate-400">Live extraction progress updates as rows are saved to SQLite. Exports use the saved records, so completed pages are recoverable after a crash.</p>
+            <p className="mt-2 text-sm text-slate-400">Progress is based on completed lead work: found rows, enrichment outcomes, skipped rows, and failed rows. Page navigation is only context.</p>
             <div className="mt-5 h-3 overflow-hidden rounded-full bg-[#20293A]">
               <div className="h-full rounded-full bg-gradient-to-r from-blue-500 to-violet-500 transition-all duration-500" style={{ width: `${progress || (stats.status === "running" ? 16 : 0)}%` }} />
             </div>
-            <p className="mt-2 text-xs text-slate-500"><Activity className="mr-1 inline" size={13} /> {progress ? `${progress.toFixed(0)}% complete` : "Progress appears when Apollo exposes the last page."}</p>
+            <p className="mt-2 text-xs text-slate-500"><Activity className="mr-1 inline" size={13} /> {stats.leadsCompleted ?? 0} of {stats.leadsExtracted} leads completed</p>
           </div>
         </div>
       </Card>

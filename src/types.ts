@@ -39,6 +39,8 @@ export interface ExtractionStats {
   currentPage: number;
   lastPage?: number;
   leadsExtracted: number;
+  leadsCompleted?: number;
+  leadsQueued?: number;
   duplicates: number;
   errors: number;
   retries: number;
@@ -55,6 +57,20 @@ export interface ExtractionStats {
   creditsUsed?: number;
   creditsRemaining?: number;
   status: "idle" | "running" | "paused" | "completed" | "failed" | "cancelled";
+}
+
+export type LeadSearchStatus = "Found" | "Duplicate" | "Skipped";
+export type LeadEnrichmentStatus = "Not Requested" | "Queued" | "Revealing Email" | "Completed" | "No Email Available" | "Skipped" | "Failed";
+export type LeadExportStatus = "Pending Export" | "Exported";
+
+export interface LeadLifecycleFields {
+  "Search Status": LeadSearchStatus;
+  "Enrichment Status": LeadEnrichmentStatus;
+  "Email Status": string;
+  "Export Status": LeadExportStatus;
+  "Pipeline Status": string;
+  "Found At": string;
+  "Updated At": string;
 }
 
 export interface ExtractionSession {

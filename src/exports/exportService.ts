@@ -9,7 +9,13 @@ export class ExportService {
   constructor(private readonly leads: LeadRepository, private readonly databasePath: string) {}
 
   async export(request: ExportRequest): Promise<string> {
-    const records = this.leads.list(request.sessionId);
+    const records = this.leads.list(request.sessionId).map((record) => ({
+      ...record,
+      fields: { ...record.fields, "Export Status": "Exported", "Updated At": new Date().toISOString() }
+    }));
+    for (const record of records) {
+      this.leads.updateFields(request.sessionId, record.id, record.fields, JSON.stringify(record.fields));
+    }
     mkdirSync(dirname(request.outputPath), { recursive: true });
     switch (request.format) {
       case "csv":

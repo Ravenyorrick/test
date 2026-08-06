@@ -70,6 +70,8 @@ export class ApiExtractionRunner {
         const result = this.leads.insertMany(session.id, uniqueRecords);
         stats.leadsExtracted += result.inserted;
         stats.duplicates += result.duplicates;
+        stats.leadsQueued = (stats.leadsQueued ?? 0) + (autoEnrich ? uniqueRecords.length : 0);
+        if (!autoEnrich) stats.leadsCompleted = (stats.leadsCompleted ?? 0) + result.inserted;
         stats.elapsedMs = Date.now() - started;
         stats.rowsPerSecond = stats.elapsedMs > 0 ? stats.leadsExtracted / (stats.elapsedMs / 1000) : 0;
         stats.currentCompany = this.detectCurrentCompany(uniqueRecords);
@@ -130,7 +132,7 @@ export class ApiExtractionRunner {
     const ids = records.map((record) => String(record.fields.id)).filter(Boolean);
     const mark = (status: string): void => {
       for (const record of records) {
-        const fields = { ...record.fields, "Pipeline Status": status };
+        const fields = { ...record.fields, "Enrichment Status": status, "Pipeline Status": status, "Updated At": new Date().toISOString() };
         const updated = { ...record, fields, visibleText: JSON.stringify(fields) };
         this.leads.updateFields(sessionId, record.id, fields, updated.visibleText);
         emit({ sessionId, stats, leads: [updated] });
@@ -147,10 +149,13 @@ export class ApiExtractionRunner {
         const email = typeof fields.email === "string" ? fields.email : undefined;
         fields.Email = email ?? fields.Email ?? "";
         fields["Email Status"] = fields.email_status ?? fields["Email Status"] ?? (email ? "available" : "unavailable");
+        fields["Enrichment Status"] = email && !email.includes("***") ? "Completed" : "No Email Available";
         fields["Pipeline Status"] = email && !email.includes("***") ? "Email Revealed" : "No email available";
+        fields["Updated At"] = new Date().toISOString();
         if (email && !email.includes("***")) stats.emailsRevealed = (stats.emailsRevealed ?? 0) + 1;
         else stats.emailsNotFound = (stats.emailsNotFound ?? 0) + 1;
         stats.peopleEnriched = (stats.peopleEnriched ?? 0) + 1;
+        stats.leadsCompleted = (stats.leadsCompleted ?? 0) + 1;
         const updated = { ...record, fields, visibleText: JSON.stringify(fields) };
         this.leads.updateFields(sessionId, record.id, fields, updated.visibleText);
         emit({ sessionId, stats, leads: [updated] });
@@ -159,7 +164,8 @@ export class ApiExtractionRunner {
       stats.enrichmentsFailed = (stats.enrichmentsFailed ?? 0) + records.length;
       stats.errors += 1;
       for (const record of records) {
-        const fields = { ...record.fields, "Pipeline Status": "Failed" };
+        stats.leadsCompleted = (stats.leadsCompleted ?? 0) + 1;
+        const fields = { ...record.fields, "Enrichment Status": "Failed", "Pipeline Status": "Failed", "Updated At": new Date().toISOString() };
         const updated = { ...record, fields, visibleText: JSON.stringify(fields) };
         this.leads.updateFields(sessionId, record.id, fields, updated.visibleText);
         emit({ sessionId, stats, leads: [updated], log: this.log(sessionId, "warn", "Email enrichment failed for a batch", { error: safeErrorMessage(error) }) });
@@ -169,7 +175,8 @@ export class ApiExtractionRunner {
 
   private markSkipped(sessionId: string, record: LeadRecord, stats: ExtractionStats, emit: Emit, status: string): void {
     stats.enrichmentsSkipped = (stats.enrichmentsSkipped ?? 0) + 1;
-    const fields = { ...record.fields, "Pipeline Status": status };
+    stats.leadsCompleted = (stats.leadsCompleted ?? 0) + 1;
+    const fields = { ...record.fields, "Enrichment Status": "Skipped", "Pipeline Status": status, "Updated At": new Date().toISOString() };
     const updated = { ...record, fields, visibleText: JSON.stringify(fields) };
     this.leads.updateFields(sessionId, record.id, fields, updated.visibleText);
     emit({ sessionId, stats, leads: [updated] });
@@ -195,7 +202,18 @@ export class ApiExtractionRunner {
   }
 
   private withPipelineStatus(person: Record<string, JsonValue>, status: string): Record<string, JsonValue> {
-    return { ...person, "Pipeline Status": status, Email: typeof person.email === "string" ? person.email : "" };
+    const now = new Date().toISOString();
+    return {
+      ...person,
+      "Search Status": "Found",
+      "Enrichment Status": status === "Completed" ? "Not Requested" : "Queued",
+      "Email Status": typeof person.email_status === "string" ? person.email_status : "",
+      "Export Status": "Pending Export",
+      "Pipeline Status": status,
+      "Found At": now,
+      "Updated At": now,
+      Email: typeof person.email === "string" ? person.email : ""
+    };
   }
 
   private chunks<T>(items: T[], size: number): T[][] {

@@ -14,7 +14,11 @@ export function LeadTable(): ReactElement {
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [details, setDetails] = useState<LeadRecord | undefined>();
   const pageSize = 25;
-  const columns = useMemo(() => Array.from(new Set(leads.flatMap((lead) => Object.keys(lead.fields)))).slice(0, 10), [leads]);
+  const columns = useMemo(() => {
+    const priority = ["Name", "Email", "Search Status", "Enrichment Status", "Email Status", "Export Status", "Pipeline Status", "Found At", "Updated At", "Company", "title"];
+    const all = Array.from(new Set(leads.flatMap((lead) => Object.keys(lead.fields))));
+    return [...priority.filter((key) => all.includes(key)), ...all.filter((key) => !priority.includes(key))].slice(0, 12);
+  }, [leads]);
   const filtered = useMemo(() => {
     const normalized = query.toLowerCase().trim();
     const rows = normalized ? leads.filter((lead) => JSON.stringify(lead.fields).toLowerCase().includes(normalized)) : leads;
