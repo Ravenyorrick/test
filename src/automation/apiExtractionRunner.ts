@@ -2,6 +2,7 @@ import type { LeadRepository, LogRepository, SessionRepository } from "@/databas
 import { ApolloUrlParser } from "@/parsers/urlParser";
 import { ApolloApiClient } from "@/services/apolloApiClient";
 import { HashService } from "@/services/hashService";
+import { safeErrorMessage } from "@/services/safeError";
 import type { ExtractionEvent, ExtractionSession, ExtractionStats, JsonValue, LeadRecord, LogEntry } from "@/types";
 
 type Emit = (event: ExtractionEvent) => void;
@@ -21,7 +22,7 @@ export class ApiExtractionRunner {
     this.cancelled = true;
   }
 
-  async run(url: string, apiKey: string, emit: Emit): Promise<ExtractionSession> {
+  async run(url: string, apiKey: string, emit: Emit, perPage = 100): Promise<ExtractionSession> {
     this.cancelled = false;
     const parsed = this.parser.parse(url);
     const client = new ApolloApiClient(apiKey);
@@ -50,12 +51,12 @@ export class ApiExtractionRunner {
       status: "running"
     };
     const seen = new Set<string>();
-    const perPage = 100;
+    const pageSize = Math.min(100, Math.max(1, perPage));
 
     try {
       for (let pageNumber = parsed.page; !this.cancelled; pageNumber += 1) {
         stats.currentPage = pageNumber;
-        const search = await this.withRetries(() => client.search(parsed.filters, pageNumber, perPage), session.id, stats, emit);
+        const search = await this.withRetries(() => client.search(parsed.filters, pageNumber, pageSize), session.id, stats, emit);
         const records = await Promise.all(search.people.map(async (person) => {
           const enriched = await this.enrichIfPossible(client, person, session.id, stats, emit);
           return this.toLead(url, pageNumber, this.mergePerson(person, enriched));
@@ -77,7 +78,7 @@ export class ApiExtractionRunner {
         this.sessions.update(session);
         emit({ sessionId: session.id, stats, leads: uniqueRecords });
 
-        if (search.people.length < perPage) break;
+        if (search.people.length < pageSize) break;
       }
 
       session.status = this.cancelled ? "paused" : "completed";
@@ -92,7 +93,7 @@ export class ApiExtractionRunner {
       session.status = "failed";
       session.updatedAt = new Date().toISOString();
       this.sessions.update(session);
-      emit({ sessionId: session.id, stats, log: this.log(session.id, "error", "API extraction failed", { error: String(error) }) });
+      emit({ sessionId: session.id, stats, log: this.log(session.id, "error", "API extraction failed", { error: safeErrorMessage(error) }) });
       throw error;
     }
   }
@@ -104,7 +105,7 @@ export class ApiExtractionRunner {
       return await client.enrich(id);
     } catch (error) {
       stats.errors += 1;
-      emit({ sessionId, stats, log: this.log(sessionId, "warn", "Skipping enrichment for one lead", { error: String(error) }) });
+      emit({ sessionId, stats, log: this.log(sessionId, "warn", "Skipping enrichment for one lead", { error: safeErrorMessage(error) }) });
       return undefined;
     }
   }
@@ -117,7 +118,7 @@ export class ApiExtractionRunner {
       } catch (error) {
         lastError = error;
         stats.retries += 1;
-        emit({ sessionId, stats, log: this.log(sessionId, "warn", "Retrying Apollo API request", { attempt: attempt + 1, error: String(error) }) });
+        emit({ sessionId, stats, log: this.log(sessionId, "warn", "Retrying Apollo API request", { attempt: attempt + 1, error: safeErrorMessage(error) }) });
         await new Promise((resolve) => setTimeout(resolve, 500 * (attempt + 1)));
       }
     }

@@ -17,14 +17,18 @@ export class BrowserService {
         viewport: { width: 1440, height: 1000 },
         userAgent: "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126 Safari/537.36"
       });
+      this.context.on("close", () => {
+        this.context = undefined;
+      });
       await this.context.route("**/*", (route) => this.route(route));
     }
 
-    return this.context.pages()[0] ?? this.context.newPage();
+    const existingPage = this.context.pages().find((page) => !page.isClosed());
+    return existingPage ?? this.context.newPage();
   }
 
   async close(): Promise<void> {
-    await this.context?.close();
+    if (this.context) await this.context.close().catch(() => undefined);
     this.context = undefined;
   }
 

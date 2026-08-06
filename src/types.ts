@@ -26,7 +26,7 @@ export interface ExtractionStats {
   elapsedMs: number;
   estimatedRemainingMs?: number;
   currentCompany?: string;
-  status: "idle" | "running" | "paused" | "completed" | "failed";
+  status: "idle" | "running" | "paused" | "completed" | "failed" | "cancelled";
 }
 
 export interface ExtractionSession {
@@ -59,4 +59,15 @@ export interface ExportRequest {
   sessionId: string;
   format: "csv" | "xlsx" | "json" | "sqlite";
   outputPath: string;
+}
+
+export type ExtractionMode = "browser" | "api";
+
+export interface AppSettings {
+  mode: ExtractionMode;
+  perPage: number;
+}
+
+export interface RuntimeConfig {
+  environmentApiKeyAvailable: boolean;
 }

@@ -1,6 +1,7 @@
 import ExcelJS from "exceljs";
 import Papa from "papaparse";
-import { copyFileSync, createWriteStream, writeFileSync } from "node:fs";
+import { copyFileSync, createWriteStream, mkdirSync, writeFileSync } from "node:fs";
+import { dirname } from "node:path";
 import type { LeadRepository } from "@/database/repositories";
 import type { ExportRequest, JsonValue, LeadRecord } from "@/types";
 
@@ -9,6 +10,7 @@ export class ExportService {
 
   async export(request: ExportRequest): Promise<string> {
     const records = this.leads.list(request.sessionId);
+    mkdirSync(dirname(request.outputPath), { recursive: true });
     switch (request.format) {
       case "csv":
         await this.csv(records, request.outputPath);
@@ -29,7 +31,7 @@ export class ExportService {
   private async csv(records: LeadRecord[], outputPath: string): Promise<void> {
     const stream = createWriteStream(outputPath);
     const rows = records.map((record) => this.flatten(record));
-    stream.write(Papa.unparse(rows, { header: true }));
+    stream.write(Papa.unparse(rows.length ? rows : [{ id: "", hash: "", page: "", sourceUrl: "", extractedAt: "" }], { header: true }));
     await new Promise<void>((resolve, reject) => {
       stream.end(resolve);
       stream.on("error", reject);
@@ -60,7 +62,7 @@ export class ExportService {
       extractedAt: record.extractedAt
     };
     for (const [key, value] of Object.entries(record.fields)) {
-      row[key] = this.scalar(value);
+      row[key] = this.escapeSpreadsheetFormula(this.scalar(value));
     }
     return row;
   }
@@ -70,5 +72,12 @@ export class ExportService {
       return value as string | number | boolean | null;
     }
     return JSON.stringify(value);
+  }
+
+  private escapeSpreadsheetFormula(value: string | number | boolean | null): string | number | boolean | null {
+    if (typeof value === "string" && /^[=+\-@]/.test(value)) {
+      return `'${value}`;
+    }
+    return value;
   }
 }

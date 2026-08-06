@@ -5,28 +5,52 @@ import { LeadTable } from "@/ui/components/LeadTable";
 import { LogPanel } from "@/ui/components/LogPanel";
 import { SearchForm } from "@/ui/components/SearchForm";
 import { SessionHistory } from "@/ui/components/SessionHistory";
+import { SettingsPage } from "@/ui/components/SettingsPage";
+import { Sidebar } from "@/ui/components/Sidebar";
+import { StatusBanner } from "@/ui/components/StatusBanner";
+import { useAppStore } from "@/ui/store";
 
 export function App(): ReactElement {
+  const page = useAppStore((state) => state.page);
+
   return (
     <main className="min-h-screen bg-slate-950 text-slate-100">
-      <div className="mx-auto flex max-w-7xl flex-col gap-6 p-6">
-        <header className="flex flex-col gap-2">
-          <p className="text-sm uppercase tracking-[0.35em] text-cyan-300">Apollo Lead Extractor</p>
-          <h1 className="text-4xl font-bold">High-speed People Search extraction</h1>
-          <p className="max-w-3xl text-slate-400">
-            Paste any Apollo People Search URL. The app reuses your logged-in browser profile, detects filters and visible columns dynamically, paginates, de-duplicates, auto-saves, and exports the resulting leads.
-          </p>
-        </header>
-        <SearchForm />
-        <Dashboard />
-        <div className="grid gap-6 lg:grid-cols-[1fr_360px]">
-          <LeadTable />
-          <div className="flex flex-col gap-6">
-            <ExportPanel />
-            <SessionHistory />
-            <LogPanel />
-          </div>
-        </div>
+      <div className="mx-auto grid max-w-7xl gap-6 p-4 lg:grid-cols-[280px_1fr] lg:p-6">
+        <Sidebar />
+        <section className="flex flex-col gap-6">
+          <StatusBanner />
+          {page === "extract" ? <SearchForm /> : null}
+          {page === "progress" ? (
+            <>
+              <Dashboard />
+              <LeadTable />
+            </>
+          ) : null}
+          {page === "history" ? <SessionHistory /> : null}
+          {page === "exports" ? (
+            <div className="grid gap-6 lg:grid-cols-[360px_1fr]">
+              <ExportPanel />
+              <LeadTable />
+            </div>
+          ) : null}
+          {page === "logs" ? <LogPanel /> : null}
+          {page === "settings" ? <SettingsPage /> : null}
+          {page === "extract" ? (
+            <div className="grid gap-6 xl:grid-cols-[1fr_360px]">
+              <Dashboard />
+              <div className="flex flex-col gap-6">
+                <ExportPanel />
+                <SessionHistory />
+              </div>
+            </div>
+          ) : null}
+          {page !== "logs" && page !== "history" ? (
+            <div className="grid gap-6 xl:grid-cols-[1fr_360px]">
+              {page !== "progress" && page !== "exports" ? <LeadTable /> : null}
+              <LogPanel />
+            </div>
+          ) : null}
+        </section>
       </div>
     </main>
   );

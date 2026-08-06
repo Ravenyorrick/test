@@ -2,14 +2,20 @@
 
 ## Installation
 
-1. Install Node.js 20 or newer.
+1. Install Node.js 22.22 or newer.
 2. Install dependencies:
 
    ```bash
    npm install
    ```
 
-3. Start the desktop app:
+3. Optionally create a `.env` file with an Apollo key for API mode:
+
+   ```bash
+   APOLLO_API_KEY=your_key_here
+   ```
+
+4. Start the desktop app:
 
    ```bash
    npm run dev
@@ -43,12 +49,13 @@ docs/           User and maintainer documentation
 
 ## Operation
 
-1. Paste any Apollo People Search URL.
-2. Optionally paste an Apollo API key. With a key, the app converts URL filters dynamically to Apollo API parameters, searches `mixed_people/api_search`, and enriches returned IDs through `people/match`.
-3. Click **Start extraction**.
-4. If no API key is provided and Apollo asks for login, complete login in the Playwright browser window. The app stores the Chromium profile and resumes automatically.
-5. Watch the dashboard for page, speed, retries, errors, progress, and current company.
-6. Export the active session as CSV, XLSX, JSON, or SQLite.
+1. Open **Settings** and choose API or browser extraction mode.
+2. Paste any Apollo People Search URL on the **Extraction** page.
+3. For API mode, paste an Apollo API key or set `APOLLO_API_KEY` in `.env`.
+4. Click **Start extraction**.
+5. If browser mode is selected and Apollo asks for login, complete login in the Playwright browser window. The app stores the Chromium profile and resumes automatically.
+6. Watch **Progress** for page, speed, retries, errors, progress, current company, and extracted rows.
+7. Export the active session from **Exports** as CSV, XLSX, JSON, or SQLite.
 
 ## Implementation notes
 
@@ -67,6 +74,7 @@ Run:
 ```bash
 npm run test
 npm run build
+npm run smoke:electron
 ```
 
 The included benchmark expectation is architectural: 100 leads in under 5 seconds is possible when Apollo renders rows quickly because extraction runs in-page, writes in batches, blocks heavy resources, and avoids per-cell Playwright round trips. Real-world speed depends on Apollo account latency, available columns, network conditions, and throttling.

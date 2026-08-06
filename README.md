@@ -9,11 +9,18 @@ npm install
 npm run dev
 ```
 
+Optional API-key configuration can be supplied at runtime in the Settings/Extraction UI or through a local `.env` file:
+
+```bash
+APOLLO_API_KEY=your_key_here
+```
+
 ## Build
 
 ```bash
 npm run test
 npm run build
+npm run smoke:electron
 ```
 
 The compiled Electron application assets are emitted to `dist/`.

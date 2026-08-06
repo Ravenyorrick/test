@@ -3,6 +3,7 @@ import type { LeadRepository, LogRepository, SessionRepository } from "@/databas
 import { PAGE_HELPERS_SCRIPT } from "@/automation/pageScripts";
 import { ApolloUrlParser } from "@/parsers/urlParser";
 import { HashService } from "@/services/hashService";
+import { safeErrorMessage } from "@/services/safeError";
 import type { ExtractionEvent, ExtractionSession, ExtractionStats, LeadRecord, LogEntry } from "@/types";
 import type { Page } from "playwright";
 
@@ -115,7 +116,7 @@ export class ExtractionRunner {
       session.status = "failed";
       session.updatedAt = new Date().toISOString();
       this.sessions.update(session);
-      emit({ sessionId: session.id, stats, log: this.log(session.id, "error", "Extraction failed", { error: String(error) }) });
+      emit({ sessionId: session.id, stats, log: this.log(session.id, "error", "Extraction failed", { error: safeErrorMessage(error) }) });
       throw error;
     }
   }
@@ -128,7 +129,7 @@ export class ExtractionRunner {
         return;
       } catch (error) {
         stats.retries += 1;
-        emit({ sessionId, stats, log: this.log(sessionId, "warn", "Navigation retry", { attempt: attempt + 1, error: String(error) }) });
+        emit({ sessionId, stats, log: this.log(sessionId, "warn", "Navigation retry", { attempt: attempt + 1, error: safeErrorMessage(error) }) });
         await page.waitForTimeout(500 * (attempt + 1));
       }
     }
