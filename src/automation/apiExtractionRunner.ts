@@ -22,7 +22,7 @@ export class ApiExtractionRunner {
     this.cancelled = true;
   }
 
-  async run(url: string, apiKey: string, emit: Emit, perPage = 100, autoEnrich = true, revealPersonalEmails = false, enrichmentConcurrency = 4): Promise<ExtractionSession> {
+  async run(url: string, apiKey: string, emit: Emit, perPage = 100, autoEnrich = true, revealPersonalEmails = false, enrichmentConcurrency = 4, maxEmailRevealsPerRun = 0): Promise<ExtractionSession> {
     this.cancelled = false;
     const parsed = this.parser.parse(url);
     const client = new ApolloApiClient(apiKey);
@@ -54,6 +54,7 @@ export class ApiExtractionRunner {
     const pageSize = Math.min(100, Math.max(1, perPage));
     const enrichmentJobs: Array<Promise<void>> = [];
     const maxConcurrentEnrichment = Math.min(8, Math.max(1, enrichmentConcurrency));
+    let queuedEmailRevealAttempts = 0;
 
     try {
       for (let pageNumber = parsed.page; !this.cancelled; pageNumber += 1) {
@@ -79,7 +80,18 @@ export class ApiExtractionRunner {
         emit({ sessionId: session.id, stats, leads: uniqueRecords });
 
         if (autoEnrich && uniqueRecords.length > 0) {
-          for (const batch of this.chunks(uniqueRecords.filter((record) => typeof record.fields.id === "string"), 10)) {
+          const eligible = uniqueRecords.filter((record) => typeof record.fields.id === "string");
+          const limited = revealPersonalEmails && maxEmailRevealsPerRun > 0
+            ? eligible.filter((record) => {
+              if (queuedEmailRevealAttempts >= maxEmailRevealsPerRun) {
+                this.markSkipped(session.id, record, stats, emit, "Skipped - email reveal limit reached");
+                return false;
+              }
+              queuedEmailRevealAttempts += 1;
+              return true;
+            })
+            : eligible;
+          for (const batch of this.chunks(limited, 10)) {
             const job = this.enrichBatch(client, url, session.id, batch, revealPersonalEmails, stats, emit);
             const tracked = job.finally(() => {
               const index = enrichmentJobs.indexOf(tracked);
@@ -153,6 +165,14 @@ export class ApiExtractionRunner {
         emit({ sessionId, stats, leads: [updated], log: this.log(sessionId, "warn", "Email enrichment failed for a batch", { error: safeErrorMessage(error) }) });
       }
     }
+  }
+
+  private markSkipped(sessionId: string, record: LeadRecord, stats: ExtractionStats, emit: Emit, status: string): void {
+    stats.enrichmentsSkipped = (stats.enrichmentsSkipped ?? 0) + 1;
+    const fields = { ...record.fields, "Pipeline Status": status };
+    const updated = { ...record, fields, visibleText: JSON.stringify(fields) };
+    this.leads.updateFields(sessionId, record.id, fields, updated.visibleText);
+    emit({ sessionId, stats, leads: [updated] });
   }
 
   private async withRetries<T>(fn: () => Promise<T>, sessionId: string, stats: ExtractionStats, emit: Emit): Promise<T> {

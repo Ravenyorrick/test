@@ -27,7 +27,7 @@ beforeEach(() => {
     apiKey: "",
     page: "extract",
     sidebarCollapsed: false,
-    settings: { mode: "api", perPage: 100, autoEnrich: true, revealPersonalEmails: false, revealDuringExtraction: true, batchEnrichment: true, enrichmentConcurrency: 4, theme: "midnight", accent: "blue", developerMode: false },
+    settings: { mode: "api", perPage: 100, autoEnrich: true, revealPersonalEmails: false, revealDuringExtraction: true, batchEnrichment: true, enrichmentConcurrency: 4, maxEmailRevealsPerRun: 0, theme: "midnight", accent: "blue", developerMode: false },
     config: { environmentApiKeyAvailable: true },
     message: undefined,
     error: undefined,
@@ -105,8 +105,10 @@ describe("visible UI interactions", () => {
     fireEvent.click(screen.getByText("Settings"));
     await screen.findByRole("heading", { name: "Settings" });
     fireEvent.change(screen.getByLabelText("Accent"), { target: { value: "purple" } });
+    fireEvent.change(screen.getByLabelText("Maximum email reveal attempts per run"), { target: { value: "25" } });
     fireEvent.click(screen.getByRole("button", { name: "Save settings" }));
     expect(JSON.parse(localStorage.getItem("apollo-lead-extractor-settings") ?? "{}").accent).toBe("purple");
+    expect(JSON.parse(localStorage.getItem("apollo-lead-extractor-settings") ?? "{}").maxEmailRevealsPerRun).toBe(25);
     fireEvent.click(screen.getByRole("button", { name: "Validate configuration" }));
     expect(await screen.findByText("Configuration is valid.")).toBeInTheDocument();
     fireEvent.click(screen.getByRole("button", { name: "Reset settings" }));

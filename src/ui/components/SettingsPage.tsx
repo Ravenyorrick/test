@@ -75,6 +75,19 @@ export function SettingsPage(): ReactElement {
           />
           <p className="mt-2 text-xs text-slate-500">Limits concurrent bulk enrichment requests to reduce rate-limit risk.</p>
         </label>
+        <label className="mt-4 block" htmlFor="max-email-reveals">
+          <span className="text-sm font-medium text-slate-300">Maximum email reveal attempts per run</span>
+          <input
+            id="max-email-reveals"
+            aria-label="Maximum email reveal attempts per run"
+            className="field mt-2"
+            type="number"
+            min={0}
+            value={settings.maxEmailRevealsPerRun}
+            onChange={(event) => updateSettings({ maxEmailRevealsPerRun: Math.max(0, Number(event.target.value) || 0) })}
+          />
+          <p className="mt-2 text-xs text-slate-500">Use 0 for unlimited. Any lead beyond the limit is saved and marked as skipped without spending reveal attempts.</p>
+        </label>
           </div>
         </Card>
       </div>

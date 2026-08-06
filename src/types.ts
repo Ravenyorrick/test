@@ -100,6 +100,7 @@ export interface AppSettings {
   revealDuringExtraction: boolean;
   batchEnrichment: boolean;
   enrichmentConcurrency: number;
+  maxEmailRevealsPerRun: number;
   maxCreditsPerRun?: number;
   theme: "midnight" | "obsidian";
   accent: "blue" | "purple";

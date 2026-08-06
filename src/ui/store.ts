@@ -62,7 +62,7 @@ const idleStats: ExtractionStats = {
   status: "idle"
 };
 
-export const defaultSettings: AppSettings = { mode: "api", perPage: 100, autoEnrich: true, revealPersonalEmails: false, revealDuringExtraction: true, batchEnrichment: true, enrichmentConcurrency: 4, theme: "midnight", accent: "blue", developerMode: false };
+export const defaultSettings: AppSettings = { mode: "api", perPage: 100, autoEnrich: true, revealPersonalEmails: false, revealDuringExtraction: true, batchEnrichment: true, enrichmentConcurrency: 4, maxEmailRevealsPerRun: 0, theme: "midnight", accent: "blue", developerMode: false };
 const validator = new InputValidator();
 
 export const useAppStore = create<AppState>((set, get) => ({
@@ -169,7 +169,8 @@ async function startExtraction(set: (partial: Partial<AppState>) => void, get: (
       perPage: state.settings.perPage,
       autoEnrich: state.settings.autoEnrich && state.settings.revealDuringExtraction,
       revealPersonalEmails: state.settings.revealPersonalEmails,
-      enrichmentConcurrency: state.settings.enrichmentConcurrency
+      enrichmentConcurrency: state.settings.enrichmentConcurrency,
+      maxEmailRevealsPerRun: state.settings.maxEmailRevealsPerRun
     });
     set({ activeSession: session, message: `Extraction ${session.status}.` });
     await get().loadSessions();
