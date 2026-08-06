@@ -28,7 +28,7 @@ npm run test
 npm run build
 ```
 
-The Vite UI is written to `dist/ui`; Electron main and preload bundles are written to `dist/electron`.
+The Vite UI is written to `dist/ui`; Electron main and preload bundles are written to `dist/electron/main.cjs` and `dist/electron/preload.cjs`.
 
 ## Folder structure
 

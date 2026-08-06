@@ -17,12 +17,12 @@ export default defineConfig({
         main: path.resolve(import.meta.dirname, "src/electron/main.ts"),
         preload: path.resolve(import.meta.dirname, "src/electron/preload.ts")
       },
-      formats: ["es"]
+      formats: ["cjs"]
     },
     rollupOptions: {
       external: ["electron", "playwright", "better-sqlite3"],
       output: {
-        entryFileNames: "[name].js"
+        entryFileNames: "[name].cjs"
       }
     }
   }

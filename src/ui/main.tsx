@@ -12,6 +12,13 @@ function Root(): ReactElement {
   const initialize = useAppStore((state) => state.initialize);
 
   useEffect(() => {
+    if (!window.apollo) {
+      applyFatal({
+        message: "Desktop bridge unavailable",
+        detail: "The Electron preload bridge did not load. Start the app with npm run dev or npx electron ., not by opening the Vite URL directly in a browser."
+      });
+      return undefined;
+    }
     void initialize();
     const unsubscribeUpdate = window.apollo.onExtractionUpdate(applyUpdate);
     const unsubscribeFatal = window.apollo.onFatalError(applyFatal);

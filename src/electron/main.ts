@@ -52,7 +52,7 @@ async function createWindow(): Promise<void> {
     show: !isSmokeTest,
     backgroundColor: "#0f172a",
     webPreferences: {
-      preload: path.join(__dirname, "preload.js"),
+      preload: path.join(__dirname, "preload.cjs"),
       contextIsolation: true,
       nodeIntegration: false
     }
@@ -65,6 +65,10 @@ async function createWindow(): Promise<void> {
   }
 
   if (isSmokeTest) {
+    const bridgeAvailable = await mainWindow.webContents.executeJavaScript("Boolean(window.apollo && window.apollo.onExtractionUpdate)");
+    if (!bridgeAvailable) {
+      throw new Error("Electron preload bridge was not available in the renderer.");
+    }
     setTimeout(() => app.quit(), 250);
   }
 }
