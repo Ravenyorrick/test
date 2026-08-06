@@ -68,7 +68,7 @@ describe("visible UI interactions", () => {
 
   it("filters, copies, and clears logs", async () => {
     render(<App />);
-    fireEvent.click(screen.getByText("Logs"));
+    fireEvent.click(screen.getByRole("button", { name: "Logs" }));
     await screen.findByText("Live logs");
     fireEvent.change(screen.getByLabelText("Search logs"), { target: { value: "Ready" } });
     fireEvent.click(screen.getByRole("button", { name: "Copy log" }));
@@ -79,7 +79,7 @@ describe("visible UI interactions", () => {
 
   it("exports each format and records export history", async () => {
     render(<App />);
-    fireEvent.click(screen.getByText("Exports"));
+    fireEvent.click(screen.getByRole("button", { name: "Exports" }));
     await screen.findByText("Export history");
     for (const label of ["Export CSV", "Export Excel", "Export JSON", "Export SQLite"]) {
       fireEvent.click(screen.getByRole("button", { name: label }));
@@ -102,8 +102,8 @@ describe("visible UI interactions", () => {
 
   it("saves, validates, and resets settings", async () => {
     render(<App />);
-    fireEvent.click(screen.getByText("Settings"));
-    await screen.findByRole("heading", { name: "Settings" });
+    fireEvent.click(screen.getAllByRole("button", { name: "Settings" })[0]);
+    await screen.findByRole("button", { name: "Save settings" });
     fireEvent.change(screen.getByLabelText("Accent"), { target: { value: "purple" } });
     fireEvent.change(screen.getByLabelText("Maximum email reveal attempts per run"), { target: { value: "25" } });
     fireEvent.click(screen.getByRole("button", { name: "Save settings" }));

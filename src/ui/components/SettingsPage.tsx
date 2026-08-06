@@ -17,6 +17,7 @@ export function SettingsPage(): ReactElement {
         <label className="block">
           <span className="text-sm font-medium text-slate-300">Extraction mode</span>
           <select
+            aria-label="Extraction mode"
             className="field mt-2"
             value={settings.mode}
             onChange={(event) => updateSettings({ mode: event.target.value as "api" | "browser" })}
@@ -96,8 +97,8 @@ export function SettingsPage(): ReactElement {
         <Card className="p-5">
           <h3 className="text-lg font-semibold">Theme</h3>
           <div className="mt-4 grid gap-4 md:grid-cols-2">
-            <label><span className="text-sm text-slate-300">Theme</span><select className="field mt-2" value={settings.theme} onChange={(event) => updateSettings({ theme: event.target.value as "midnight" | "obsidian" })}><option value="midnight">Midnight</option><option value="obsidian">Obsidian</option></select></label>
-            <label><span className="text-sm text-slate-300">Accent</span><select className="field mt-2" value={settings.accent} onChange={(event) => updateSettings({ accent: event.target.value as "blue" | "purple" })}><option value="blue">Blue</option><option value="purple">Purple</option></select></label>
+            <label><span className="text-sm text-slate-300">Theme</span><select aria-label="Theme" className="field mt-2" value={settings.theme} onChange={(event) => updateSettings({ theme: event.target.value as "midnight" | "obsidian" })}><option value="midnight">Midnight</option><option value="obsidian">Obsidian</option></select></label>
+            <label><span className="text-sm text-slate-300">Accent</span><select aria-label="Accent" className="field mt-2" value={settings.accent} onChange={(event) => updateSettings({ accent: event.target.value as "blue" | "purple" })}><option value="blue">Blue</option><option value="purple">Purple</option></select></label>
           </div>
         </Card>
 

@@ -59,17 +59,17 @@ describe("App shell", () => {
     installApolloMock();
     render(<App />);
     expect(screen.getByText("Lead Extractor")).toBeInTheDocument();
-    expect(screen.getByRole("heading", { name: "Dashboard" })).toBeInTheDocument();
-    fireEvent.click(screen.getByText("Extract Leads"));
+    expect(screen.getAllByRole("heading", { name: "Dashboard" }).length).toBeGreaterThan(0);
+    fireEvent.click(screen.getByRole("button", { name: "Extract Leads" }));
     expect(await screen.findByRole("heading", { name: "Extract Apollo leads" })).toBeInTheDocument();
-    fireEvent.click(screen.getByText("Settings"));
+    fireEvent.click(screen.getAllByRole("button", { name: "Settings" })[0]);
     expect(await screen.findByRole("heading", { name: "Settings" })).toBeInTheDocument();
   });
 
   it("shows validation errors instead of starting with bad input", async () => {
     installApolloMock();
     render(<App />);
-    fireEvent.click(screen.getByText("Extract Leads"));
+    fireEvent.click(screen.getByRole("button", { name: "Extract Leads" }));
     await screen.findByRole("heading", { name: "Extract Apollo leads" });
     fireEvent.change(screen.getByLabelText("Apollo People Search URL"), { target: { value: "https://example.com" } });
     fireEvent.click(screen.getByRole("button", { name: "Start" }));
@@ -80,8 +80,8 @@ describe("App shell", () => {
   it("persists non-secret settings", async () => {
     installApolloMock();
     render(<App />);
-    fireEvent.click(screen.getByText("Settings"));
-    await screen.findByRole("heading", { name: "Settings" });
+    fireEvent.click(screen.getAllByRole("button", { name: "Settings" })[0]);
+    await screen.findByRole("button", { name: "Save settings" });
     fireEvent.change(screen.getByLabelText("Extraction mode"), { target: { value: "browser" } });
     expect(JSON.parse(localStorage.getItem("apollo-lead-extractor-settings") ?? "{}").mode).toBe("browser");
   });

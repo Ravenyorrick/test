@@ -18,6 +18,8 @@ body {
     radial-gradient(circle at top left, rgba(59, 130, 246, 0.18), transparent 32rem),
     radial-gradient(circle at 80% 10%, rgba(139, 92, 246, 0.16), transparent 28rem),
     var(--bg);
+  font-size: 14px;
+  letter-spacing: -0.01em;
 }
 
 * {
@@ -42,7 +44,7 @@ button, input, select {
   justify-content: center;
   gap: 0.5rem;
   border-radius: 14px;
-  padding: 0.7rem 1rem;
+  padding: 0.62rem 0.9rem;
   font-weight: 650;
   transition: transform 160ms ease, border-color 160ms ease, background 160ms ease, opacity 160ms ease;
   outline: none;
@@ -92,7 +94,7 @@ button, input, select {
   border-radius: 16px;
   background: rgba(8, 13, 24, 0.72);
   color: white;
-  padding: 0.85rem 1rem;
+  padding: 0.76rem 0.95rem;
   outline: none;
   transition: border-color 160ms ease, box-shadow 160ms ease;
 }
