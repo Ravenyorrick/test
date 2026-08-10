@@ -311,8 +311,10 @@ Apollo Person ID, First Name, Last Name, Name, Title, Company, Company Domain, L
 | Stage | Credits |
 |---|---|
 | People API Search | 0 |
-| People Enrichment | 1–9 per person without waterfall when credit-consuming data is found (Apollo docs) |
+| People Enrichment | Typically **1 credit per person** for demographics/business email; +8 if mobile phone is returned; 0 if nothing found (Apollo docs: 1–9) |
 | Waterfall | Depends on plan / vendors / returned data |
+
+When you request a total email count (`--emails N`), this package enriches **one person at a time** and stops as soon as N business emails are found, so you do not pay a bulk buffer of extra enrichments.
 
 If Apollo does not return an exact credit count, the package reports:
 

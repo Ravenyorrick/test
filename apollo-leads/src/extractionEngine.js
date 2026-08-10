@@ -297,10 +297,12 @@ class ExtractionEngine {
     // Otherwise keep the legacy maxPages/perPage behavior.
     let perPage;
     let maxPages;
+    // When targeting an email total, enrich one person at a time to avoid
+    // spending credits on a bulk buffer. Apollo People Enrichment is typically
+    // 1 credit per person for demographics/email (0 if nothing returned).
+    const creditSafeMode = Boolean(emailLimit);
     if (emailLimit) {
       perPage = Math.min(100, opts.perPage ?? Math.min(100, Math.max(10, emailLimit)));
-      // Safety: scan enough pages to likely reach the email target.
-      // Stop early once enough business emails are found.
       const estimatedPages = Math.ceil(emailLimit / perPage) * 10;
       maxPages = opts.maxPages ?? Math.min(500, Math.max(1, estimatedPages));
     } else {
@@ -345,9 +347,16 @@ class ExtractionEngine {
 
       if (!searchResult.people.length) break;
 
+      // Prefer people Apollo already flags as having email (still 0 credits at search).
+      const orderedPeople = [...searchResult.people].sort((a, b) => {
+        const ae = a.has_email === true ? 0 : 1;
+        const be = b.has_email === true ? 0 : 1;
+        return ae - be;
+      });
+
       const pagePeopleToEnrich = [];
 
-      for (const rawPerson of searchResult.people) {
+      for (const rawPerson of orderedPeople) {
         await job._waitIfPaused();
         if (!job.shouldContinue()) break;
         if (this._emailLimitReached(job, emailLimit)) {
@@ -404,26 +413,41 @@ class ExtractionEngine {
           continue;
         }
 
-        pagePeopleToEnrich.push(extracted);
-
-        // When targeting a total email count, don't queue far more people than needed.
-        // Keep a small buffer for people who enrich without a business email.
-        if (emailLimit) {
-          const remaining = emailLimit - job.stats.business_emails_found;
-          const buffer = Math.max(3, Math.ceil(remaining * 1.5));
-          if (pagePeopleToEnrich.length >= buffer) break;
+        // Credit-safe mode: enrich one person at a time and stop as soon as
+        // the requested email total is reached (≈1 credit per successful email).
+        if (creditSafeMode) {
+          job.emit('enriching', {
+            count: 1,
+            business_emails_found: job.stats.business_emails_found,
+            email_limit: emailLimit,
+            person: extracted,
+          });
+          await this._enrichSingle(job, [extracted], opts, webhookUrl, emailLimit);
+          if (this._emailLimitReached(job, emailLimit)) {
+            reachedEmailLimit = true;
+            break;
+          }
+          continue;
         }
+
+        pagePeopleToEnrich.push(extracted);
       }
 
-      // Enrich this page immediately so an emailLimit can stop early
-      if (opts.enrich && pagePeopleToEnrich.length && job.shouldContinue() && !reachedEmailLimit) {
+      // Legacy/bulk path when no emailLimit is set
+      if (
+        !creditSafeMode &&
+        opts.enrich &&
+        pagePeopleToEnrich.length &&
+        job.shouldContinue() &&
+        !reachedEmailLimit
+      ) {
         job.emit('enriching', {
           count: pagePeopleToEnrich.length,
           business_emails_found: job.stats.business_emails_found,
           email_limit: emailLimit,
         });
 
-        if (opts.useBulk) {
+        if (opts.useBulk !== false) {
           await this._enrichBulk(job, pagePeopleToEnrich, opts, webhookUrl, emailLimit);
         } else {
           await this._enrichSingle(job, pagePeopleToEnrich, opts, webhookUrl, emailLimit);

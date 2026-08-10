@@ -81,6 +81,7 @@ describe('ApolloExtractor job controls', () => {
     });
 
     let searchCalls = 0;
+    let matchCalls = 0;
     extractor.engine.client.post = async (path, options) => {
       if (path.includes('api_search')) {
         searchCalls += 1;
@@ -93,25 +94,27 @@ describe('ApolloExtractor job controls', () => {
               id: `p-${page}-${i}`,
               first_name: `Person${page}${i}`,
               title: 'CEO',
+              has_email: true,
               organization: { name: 'Co', primary_domain: 'co.com' },
             })),
           },
         };
       }
 
-      // bulk_match
-      const details = options.body.details || [];
+      // people/match (credit-safe one-at-a-time mode)
+      matchCalls += 1;
+      const id = options.query?.id || `m-${matchCalls}`;
       return {
         status: 200,
         data: {
-          matches: details.map((d, idx) => ({
-            id: d.id,
+          person: {
+            id,
             first_name: 'X',
             last_name: 'Y',
-            email: `user${d.id}@co.com`,
+            email: `user${id}@co.com`,
             email_status: 'verified',
             organization: { name: 'Co', primary_domain: 'co.com' },
-          })),
+          },
         },
       };
     };
@@ -125,7 +128,9 @@ describe('ApolloExtractor job controls', () => {
     assert.ok(outcome.stats.business_emails_found >= 3);
     assert.equal(outcome.results.length, 3);
     assert.ok(outcome.results.every((r) => r.business_email));
-    // Should not keep searching forever after target is hit
+    // Credit-safe: enrich exactly 3 people for 3 emails (not a bulk buffer)
+    assert.equal(outcome.stats.enrichment_requests, 3);
+    assert.equal(matchCalls, 3);
     assert.ok(searchCalls <= 2);
   });
 

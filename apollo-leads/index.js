@@ -239,6 +239,8 @@ async function main() {
   console.log(`Email target: ${args.emails}`);
   console.log(`Autosave file: ${outPath}`);
   console.log('(Each email is saved immediately so a crash does not lose progress.)');
+  console.log('Credits: search=0; each person enrich ≈1 credit for business email (no phone/waterfall).');
+  console.log('         Enrichment stops as soon as your email total is reached.');
   console.log('');
 
   const mapped = extractor.parseUrl(args.url);
