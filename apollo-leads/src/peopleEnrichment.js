@@ -63,11 +63,20 @@ async function enrichPerson(client, person, options = {}) {
     throw new Error('Cannot enrich person: no identifying information provided');
   }
 
-  const query = {
-    ...details,
-    reveal_personal_emails: Boolean(options.revealPersonalEmails),
-    reveal_phone_number: false,
-  };
+  // Email reveal only: Apollo's People Match is the unlock endpoint.
+  // Prefer person id alone when available — avoid extra matching fields that
+  // do not reduce credit cost but can confuse "enrich vs reveal" intent.
+  const query = options.emailRevealOnly && details.id
+    ? {
+        id: details.id,
+        reveal_personal_emails: Boolean(options.revealPersonalEmails),
+        reveal_phone_number: false,
+      }
+    : {
+        ...details,
+        reveal_personal_emails: Boolean(options.revealPersonalEmails),
+        reveal_phone_number: false,
+      };
 
   if (options.runWaterfallEmail) {
     if (!options.webhookUrl) {

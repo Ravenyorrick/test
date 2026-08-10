@@ -314,12 +314,13 @@ Apollo Person ID, First Name, Last Name, Name, Title, Company, Company Domain, L
 | People Enrichment | Typically **1 credit per person** for demographics/business email; +8 if mobile phone is returned; 0 if nothing found (Apollo docs: 1–9) |
 | Waterfall | Depends on plan / vendors / returned data |
 
-Important: this is **not** like the Apollo website, where “find person” and “reveal email” can feel like two separate unlocks.
+Important: Apollo has **no separate cheaper “email-only” API**.  
+What the website calls “reveal email” is their **People Match / Enrichment** endpoint (`/people/match`). That is the only official way to unlock a business email from search results.
 
 On the **API**:
 - People Search = **0 credits** (returns people, but never the email)
-- People Enrichment = **1 credit** for demographics **and** business email together  
-  → not 1 credit to get the person + 1 credit to reveal email
+- Reveal email (People Match) = **1 credit** and returns the business email  
+  → this package calls Match with the person `id` only (no phone, no waterfall, no personal email by default)
 
 Credit-safe defaults when you request a total email count (`--emails N`):
 

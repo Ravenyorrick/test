@@ -232,6 +232,8 @@ async function main() {
     enrichMissingEmail: args.enrichMissingEmail,
     // Default credit-safe: only enrich people Apollo flags with has_email
     onlyHasEmail: args.allowNoEmailFlag ? false : true,
+    // Reveal email via person id only (Apollo Match) — no phone/waterfall extras
+    emailRevealOnly: true,
     cache: true,
     debug: process.env.DEBUG === 'true',
     // Save each business email to disk immediately (crash-safe)
@@ -247,11 +249,11 @@ async function main() {
   console.log(`Email target: ${args.emails}`);
   console.log(`Autosave file: ${outPath}`);
   console.log('(Each email is saved immediately so a crash does not lose progress.)');
-  console.log('How Apollo API credits work (not the same as the website UI):');
-  console.log('  1) Search people        = 0 credits  (names/titles only; NO email returned)');
-  console.log('  2) Enrich / reveal email = 1 credit   (person + business email together)');
-  console.log('     → NOT 1 credit to find + 1 credit to reveal. Reveal is the only paid step.');
-  console.log('  Skips people without has_email. Phone/waterfall off. Stops at your email total.');
+  console.log('Goal: reveal business emails only (not phone, not waterfall, not personal email).');
+  console.log('Apollo has no cheaper "email-only" endpoint — reveal = their People Match API.');
+  console.log('  Search people     = 0 credits (lists prospects; email locked)');
+  console.log('  Reveal email      = 1 credit  (unlocks business email for that person)');
+  console.log('  Skips people without has_email. Stops at your email total.');
   console.log('');
 
   const mapped = extractor.parseUrl(args.url);
@@ -303,7 +305,7 @@ async function main() {
     const pct = target ? Math.min(100, Math.round((found / target) * 100)) : 0;
     const filled = Math.round(pct / 5);
     const bar = `${'█'.repeat(filled)}${'░'.repeat(20 - filled)}`;
-    return `[${bar}] ${found}/${target} emails  |  searched ${scanned} (0 cr)  |  enrich ${enrichCalls} (≈${enrichCalls} cr)  |  search pages ${searchCalls}`;
+    return `[${bar}] ${found}/${target} emails  |  listed ${scanned} (free)  |  reveals ${enrichCalls} (≈${enrichCalls} cr)  |  search pages ${searchCalls}`;
   }
 
   console.log('────────────────────────────────────────');
@@ -320,19 +322,19 @@ async function main() {
 
   job.on('person', (person) => {
     personSeq += 1;
-    const emailHint = person.has_email === true ? 'has_email → will enrich' : 'no email flag → skip';
+    const emailHint = person.has_email === true ? 'has_email → will reveal' : 'no email flag → skip';
     console.log(`👤 #${personSeq} Listed (free): ${personLabel(person)} (${emailHint})`);
   });
 
   job.on('skipped', (info) => {
     if (info.reason === 'no_email_flag') {
-      console.log(`   ↷ Skip enrich (0 credits — Apollo has_email=false)`);
+      console.log(`   ↷ Skip reveal (0 credits — Apollo has_email=false)`);
     }
   });
 
   job.on('enriching', (info) => {
     console.log('');
-    console.log(`⚡ Reveal email via enrich (≈1 credit for person + email together)...`);
+    console.log(`⚡ Revealing business email (≈1 credit)...`);
     console.log(progressLine());
   });
 
@@ -395,10 +397,10 @@ async function main() {
     if (args.waterfallEmail) {
       console.log(`Waterfall requests: ${outcome.stats.waterfall_requests}`);
     }
-    console.log(`People scanned: ${outcome.stats.people_found}`);
-    console.log(`Enrichment requests: ${outcome.stats.enrichment_requests}`);
+    console.log(`People listed (free search): ${outcome.stats.people_found}`);
+    console.log(`Email reveals attempted: ${outcome.stats.enrichment_requests}`);
     console.log(`Skipped (no has_email): ${outcome.stats.enrichment_skipped_no_email_flag || 0}`);
-    console.log(`Cache skips: ${outcome.stats.enrichment_skipped_cache}`);
+    console.log(`Cache skips (already revealed): ${outcome.stats.enrichment_skipped_cache}`);
     console.log(`Credits used: ${outcome.stats.credits_used}`);
     if (
       outcome.stats.enrichment_requests > 0 &&

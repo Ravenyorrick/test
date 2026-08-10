@@ -29,6 +29,43 @@ describe('enrichment', () => {
     assert.equal(details.linkedin_url, 'https://linkedin.com/in/ada');
   });
 
+  it('emailRevealOnly sends only person id (no extra enrich fields)', async () => {
+    const client = {
+      async post(_path, options) {
+        assert.deepEqual(Object.keys(options.query).sort(), [
+          'id',
+          'reveal_personal_emails',
+          'reveal_phone_number',
+        ]);
+        assert.equal(options.query.id, 'pid-1');
+        assert.equal(options.query.reveal_phone_number, false);
+        return {
+          status: 200,
+          data: {
+            person: {
+              id: 'pid-1',
+              email: 'ada@example.com',
+              email_status: 'verified',
+            },
+          },
+        };
+      },
+    };
+
+    const result = await enrichPerson(
+      client,
+      {
+        apollo_person_id: 'pid-1',
+        first_name: 'Ada',
+        company: 'Example',
+        company_domain: 'example.com',
+      },
+      { emailRevealOnly: true }
+    );
+
+    assert.equal(result.lead.business_email, 'ada@example.com');
+  });
+
   it('stores Apollo email as business_email, not personal_email', async () => {
     const client = {
       async post(_path, options) {

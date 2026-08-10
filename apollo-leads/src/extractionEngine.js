@@ -455,8 +455,13 @@ class ExtractionEngine {
             business_emails_found: job.stats.business_emails_found,
             email_limit: emailLimit,
             person: extracted,
+            mode: 'email_reveal',
           });
-          await this._enrichSingle(job, [extracted], opts, webhookUrl, emailLimit);
+          await this._enrichSingle(job, [extracted], {
+            ...opts,
+            // Credit-safe email mode: unlock email via person id only.
+            emailRevealOnly: opts.emailRevealOnly !== false,
+          }, webhookUrl, emailLimit);
           if (this._emailLimitReached(job, emailLimit)) {
             reachedEmailLimit = true;
             break;
@@ -638,11 +643,13 @@ class ExtractionEngine {
       if (this._emailLimitReached(job, emailLimit)) break;
 
       try {
-        // Stage 1: native enrichment for business/work email
+        // Stage 1: unlock business/work email (Apollo People Match).
+        // emailRevealOnly sends just the person id — no phone/waterfall extras.
         const result = await this.rateLimiter.schedule(() =>
           enrichPerson(this.client, person, {
             revealPersonalEmails: opts.revealPersonalEmails,
             runWaterfallEmail: false,
+            emailRevealOnly: opts.emailRevealOnly !== false && Boolean(emailLimit || opts.emailRevealOnly),
             includeRaw: opts.includeRaw,
           })
         );
