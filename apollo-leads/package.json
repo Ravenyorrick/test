@@ -8,6 +8,7 @@
   },
   "scripts": {
     "start": "node index.js",
+    "setup": "node scripts/setup-api-key.js",
     "test": "node --test tests/*.test.js",
     "example": "node examples/basic.js",
     "live-test": "node scripts/live-api-chain.js"

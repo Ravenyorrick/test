@@ -22,12 +22,24 @@ const { exportToCSV, exportToJSON } = require('./exporters');
 const { normalizeLead } = require('./normalize');
 const { WaterfallWebhookHandler } = require('./webhookServer');
 const { ApolloExtractor, ExtractionEngine, ExtractionJob } = require('./extractionEngine');
+const {
+  ensureApolloApiKey,
+  saveEnvValue,
+  readEnvFileValue,
+  ENV_PATH,
+} = require('./credentials');
 
 module.exports = {
   // Primary API
   ApolloExtractor,
   ExtractionEngine,
   ExtractionJob,
+
+  // Credentials helpers
+  ensureApolloApiKey,
+  saveEnvValue,
+  readEnvFileValue,
+  ENV_PATH,
 
   // Client
   ApolloClient,

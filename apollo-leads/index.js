@@ -1,17 +1,23 @@
 #!/usr/bin/env node
 'use strict';
 
-require('dotenv').config();
-
 const path = require('path');
+
+// Load saved .env first (created after the first interactive key prompt)
+require('dotenv').config({ path: path.join(__dirname, '.env') });
+
 const { ApolloExtractor, ApolloApiError } = require('./src');
+const { ensureApolloApiKey, ensureValue } = require('./src/credentials');
 
 function printUsage() {
   console.log(`Usage:
   node index.js --url "APOLLO_URL" [options]
 
+  If APOLLO_API_KEY is not set, you will be prompted and it will be
+  saved to .env for future runs.
+
 Options:
-  --url <url>              Apollo people search URL (required)
+  --url <url>              Apollo people search URL
   --max-pages <n>          Max search pages (default: 10)
   --per-page <n>           Results per page, max 100 (default: 100)
   --concurrency <n>        Concurrent API requests (default: 2)
@@ -22,7 +28,12 @@ Options:
   --enrich-missing-email   Re-enrich cached people missing business email
   --output <path>          Export path (.csv or .json)
   --webhook-url <url>      HTTPS webhook URL for waterfall results
+  --reset-api-key          Ignore saved key and prompt for a new one
   --help                   Show help
+
+Examples:
+  node index.js --url "https://app.apollo.io/#/people?..." --max-pages 1 --per-page 10
+  node index.js --url "https://app.apollo.io/#/people?..." --output ./exports/leads.csv
 `);
 }
 
@@ -39,6 +50,8 @@ function parseArgs(argv) {
     enrichMissingEmail: false,
     output: null,
     webhookUrl: process.env.APOLLO_WEBHOOK_URL || null,
+    resetApiKey: false,
+    help: false,
   };
 
   for (let i = 0; i < argv.length; i += 1) {
@@ -89,6 +102,9 @@ function parseArgs(argv) {
         args.webhookUrl = next;
         i += 1;
         break;
+      case '--reset-api-key':
+        args.resetApiKey = true;
+        break;
       default:
         if (arg.startsWith('-')) {
           throw new Error(`Unknown argument: ${arg}`);
@@ -118,17 +134,45 @@ function summarizeFilters(mapped) {
   return lines;
 }
 
+function defaultOutputPath() {
+  const stamp = new Date().toISOString().replace(/[:.]/g, '-');
+  return path.join(__dirname, 'exports', `leads-${stamp}.csv`);
+}
+
 async function main() {
   const args = parseArgs(process.argv.slice(2));
 
-  if (args.help || !args.url) {
+  if (args.help) {
     printUsage();
-    process.exit(args.help ? 0 : 1);
+    process.exit(0);
   }
 
-  if (!process.env.APOLLO_API_KEY) {
-    console.error('APOLLO_API_KEY is missing. Copy .env.example to .env and set your key.');
+  if (args.resetApiKey) {
+    delete process.env.APOLLO_API_KEY;
+  }
+
+  // Prompt + save API key when missing
+  await ensureApolloApiKey({
+    prompt: true,
+    save: true,
+  });
+
+  // Prompt for URL when not passed on the command line
+  if (!args.url) {
+    args.url = await ensureValue(
+      'url',
+      null,
+      'Enter Apollo people search URL:\n> '
+    );
+  }
+
+  if (!args.url) {
+    printUsage();
     process.exit(1);
+  }
+
+  if (!args.output) {
+    args.output = defaultOutputPath();
   }
 
   const extractor = new ApolloExtractor({
@@ -212,21 +256,19 @@ async function main() {
     console.log(`Credits used: ${outcome.stats.credits_used}`);
   }
 
-  if (args.output) {
-    const outPath = path.resolve(args.output);
-    if (outPath.toLowerCase().endsWith('.json')) {
-      extractor.exportToJSON(outcome.results, outPath, {
-        meta: {
-          stats: outcome.stats,
-          filters: outcome.filters,
-          unsupported: outcome.unsupported,
-        },
-      });
-    } else {
-      extractor.exportToCSV(outcome.results, outPath);
-    }
-    console.log(`Exported: ${outPath}`);
+  const outPath = path.resolve(args.output);
+  if (outPath.toLowerCase().endsWith('.json')) {
+    extractor.exportToJSON(outcome.results, outPath, {
+      meta: {
+        stats: outcome.stats,
+        filters: outcome.filters,
+        unsupported: outcome.unsupported,
+      },
+    });
+  } else {
+    extractor.exportToCSV(outcome.results, outPath);
   }
+  console.log(`Exported: ${outPath}`);
 
   console.log('');
   console.log('Completed.');
