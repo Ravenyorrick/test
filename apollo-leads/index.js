@@ -142,8 +142,9 @@ function summarizeFilters(mapped) {
   }
   if (f.organization_ids?.length) lines.push(`Organization IDs: ${f.organization_ids.length}`);
   if (f.q_keywords) lines.push('Keywords: yes');
-  if (mapped.summary?.industry_tag_ids?.length) {
-    lines.push(`Industry (web-only, unsupported by API): ${mapped.summary.industry_tag_ids.length}`);
+  if (f.organization_industry_tag_ids?.length || mapped.summary?.industry_tag_ids?.length) {
+    const ids = f.organization_industry_tag_ids || mapped.summary.industry_tag_ids || [];
+    lines.push(`Industry tag IDs: ${ids.length} (${ids.join(', ')})`);
   }
 
   return lines;

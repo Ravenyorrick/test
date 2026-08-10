@@ -32,14 +32,20 @@ describe('filterMapper', () => {
     assert.deepEqual(mapped.filters.person_locations, ['United States']);
   });
 
-  it('does not send unsupported web parameters to the API filters', () => {
+  it('maps organizationIndustryTagIds to organization_industry_tag_ids array', () => {
+    const mapped = parseAndMapApolloUrl(EXAMPLE_URL);
+    assert.deepEqual(mapped.filters.organization_industry_tag_ids, [
+      '5567ce2673696453d95c0000',
+    ]);
+    assert.equal(mapped.unsupported.organizationIndustryTagIds, undefined);
+  });
+
+  it('does not send unsupported web-only UI parameters to the API filters', () => {
     const mapped = parseAndMapApolloUrl(EXAMPLE_URL);
 
     assert.equal(mapped.filters.sortAscending, undefined);
     assert.equal(mapped.filters.sortByField, undefined);
     assert.equal(mapped.filters.recommendationConfigId, undefined);
-    assert.equal(mapped.filters.organizationIndustryTagIds, undefined);
-    assert.equal(mapped.filters.organization_industry_tag_ids, undefined);
 
     assert.equal(mapped.unsupported.sortAscending, 'false');
     assert.equal(mapped.unsupported.sortByField, '[none]');
@@ -47,9 +53,6 @@ describe('filterMapper', () => {
       mapped.unsupported.recommendationConfigId,
       '6a0d0a155813970001be6201'
     );
-    assert.deepEqual(mapped.unsupported.organizationIndustryTagIds, [
-      '5567ce2673696453d95c0000',
-    ]);
   });
 
   it('maps nested revenue range parameters', () => {

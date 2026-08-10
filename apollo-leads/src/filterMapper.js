@@ -38,6 +38,13 @@ const WEB_TO_API = {
   organizationNumEmployeesRanges: { apiKey: 'organization_num_employees_ranges', type: 'array' },
   organization_num_employees_ranges: { apiKey: 'organization_num_employees_ranges', type: 'array' },
 
+  // Industry tag IDs from Apollo web URLs.
+  // Official OpenAPI page omits this field, but Apollo's own CLI maps
+  // organizationIndustryTagIds -> organization_industry_tag_ids and the
+  // live People API Search endpoint accepts it (verified).
+  organizationIndustryTagIds: { apiKey: 'organization_industry_tag_ids', type: 'array' },
+  organization_industry_tag_ids: { apiKey: 'organization_industry_tag_ids', type: 'array' },
+
   // Revenue range
   'revenueRange[min]': { apiKey: 'revenue_range', type: 'nested', nested: 'min' },
   'revenueRange[max]': { apiKey: 'revenue_range', type: 'nested', nested: 'max' },
@@ -83,10 +90,6 @@ const KNOWN_UNSUPPORTED = {
   sortAscending: 'Apollo web UI sort flag; not a documented People API Search parameter.',
   sortByField: 'Apollo web UI sort field; not a documented People API Search parameter.',
   recommendationConfigId: 'Apollo web UI recommendation config; not a documented People API Search parameter.',
-  organizationIndustryTagIds:
-    'Apollo web industry tag IDs. People API Search does not document an industry filter equivalent. Not sent to the API.',
-  organization_industry_tag_ids:
-    'Apollo web industry tag IDs. People API Search does not document an industry filter equivalent. Not sent to the API.',
   utm_campaign: 'Marketing tracking parameter; not a People API Search filter.',
   utm_content: 'Marketing tracking parameter; not a People API Search filter.',
   utm_medium: 'Marketing tracking parameter; not a People API Search filter.',
@@ -182,7 +185,10 @@ function parseAndMapApolloUrl(url) {
     summary: {
       person_titles: mapped.filters.person_titles || [],
       person_locations: mapped.filters.person_locations || [],
-      industry_tag_ids: parsed.organizationIndustryTagIds,
+      industry_tag_ids:
+        mapped.filters.organization_industry_tag_ids ||
+        parsed.organizationIndustryTagIds ||
+        [],
       page: mapped.filters.page ?? parsed.page,
       unsupported_count: Object.keys(mapped.unsupported).length,
     },
@@ -207,6 +213,7 @@ function normalizeFiltersForRequest(filters) {
     'contact_email_status',
     'organization_ids',
     'organization_num_employees_ranges',
+    'organization_industry_tag_ids',
     'currently_using_all_of_technology_uids',
     'currently_using_any_of_technology_uids',
     'currently_not_using_any_of_technology_uids',

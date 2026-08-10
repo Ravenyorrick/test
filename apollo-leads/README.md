@@ -220,12 +220,17 @@ person_titles: [
 
 This avoids Apollo’s `422 person_titles requires an array` error.
 
-Unsupported web params (not sent to the API) include:
+Industry from Apollo URLs is mapped and sent:
+
+```text
+organizationIndustryTagIds[]  →  organization_industry_tag_ids[]
+```
+
+Unsupported web-only UI params (not sent to the API) include:
 
 - `sortAscending`
 - `sortByField`
 - `recommendationConfigId`
-- `organizationIndustryTagIds[]` (not documented on People API Search)
 
 ---
 
