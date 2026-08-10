@@ -314,7 +314,14 @@ Apollo Person ID, First Name, Last Name, Name, Title, Company, Company Domain, L
 | People Enrichment | Typically **1 credit per person** for demographics/business email; +8 if mobile phone is returned; 0 if nothing found (Apollo docs: 1–9) |
 | Waterfall | Depends on plan / vendors / returned data |
 
-When you request a total email count (`--emails N`), this package enriches **one person at a time** and stops as soon as N business emails are found, so you do not pay a bulk buffer of extra enrichments.
+Credit-safe defaults when you request a total email count (`--emails N`):
+
+1. **Search is free** — find people first (includes Apollo’s `has_email` flag).
+2. **Skip people without `has_email`** — enriching them can still cost 1 credit for demographics with no email. Use `--allow-no-email-flag` only if you intentionally want that.
+3. **Enrich one person at a time** — stop as soon as N business emails are found (no bulk buffer of extra enrichments).
+4. **Phone / waterfall off by default** — those cost extra credits.
+
+Target: **≈1 credit per person who returns a business email**.
 
 If Apollo does not return an exact credit count, the package reports:
 
