@@ -373,6 +373,10 @@ class ExtractionEngine {
             })
           );
           this._recordLead(job, cachedLead);
+          job.emit('enriched', cachedLead);
+          if (cachedLead.found_business_email) {
+            job.emit('email', cachedLead);
+          }
           if (this._emailLimitReached(job, emailLimit)) {
             reachedEmailLimit = true;
             break;
@@ -381,6 +385,14 @@ class ExtractionEngine {
         }
 
         pagePeopleToEnrich.push(extracted);
+
+        // When targeting a total email count, don't queue far more people than needed.
+        // Keep a small buffer for people who enrich without a business email.
+        if (emailLimit) {
+          const remaining = emailLimit - job.stats.business_emails_found;
+          const buffer = Math.max(3, Math.ceil(remaining * 1.5));
+          if (pagePeopleToEnrich.length >= buffer) break;
+        }
       }
 
       // Enrich this page immediately so an emailLimit can stop early

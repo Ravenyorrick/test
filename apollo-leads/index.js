@@ -261,31 +261,77 @@ async function main() {
     perPage: args.perPage ?? undefined,
   });
 
+  let personSeq = 0;
+
+  function personLabel(person) {
+    const name =
+      person.name ||
+      [person.first_name, person.last_name].filter(Boolean).join(' ') ||
+      person.first_name ||
+      'Unknown';
+    const title = person.title || 'Unknown title';
+    const company = person.company || person.organization?.name || 'Unknown company';
+    return `${name} — ${title} @ ${company}`;
+  }
+
+  function progressLine() {
+    const found = job.stats.business_emails_found || 0;
+    const target = args.emails;
+    const scanned = job.stats.people_found || 0;
+    const pct = target ? Math.min(100, Math.round((found / target) * 100)) : 0;
+    const filled = Math.round(pct / 5);
+    const bar = `${'█'.repeat(filled)}${'░'.repeat(20 - filled)}`;
+    return `[${bar}] ${found}/${target} emails  |  scanned ${scanned}`;
+  }
+
+  console.log('────────────────────────────────────────');
+  console.log('Live extraction');
+  console.log('────────────────────────────────────────');
+  console.log(progressLine());
+  console.log('');
+
   job.on('search', (info) => {
-    const progress = info.email_limit
-      ? ` | emails so far: ${info.business_emails_found || 0}/${info.email_limit}`
-      : '';
-    console.log(`Searching... found ${info.people_count} people${progress}`);
+    console.log(`🔎 Search batch: ${info.people_count} people found`);
+    console.log(progressLine());
+    console.log('');
+  });
+
+  job.on('person', (person) => {
+    personSeq += 1;
+    console.log(`👤 #${personSeq} Found: ${personLabel(person)}`);
   });
 
   job.on('enriching', (info) => {
-    const progress = info.email_limit
-      ? ` (${info.business_emails_found || 0}/${info.email_limit} emails so far)`
-      : '';
-    console.log(`Enriching ${info.count} people...${progress}`);
+    console.log('');
+    console.log(`⚡ Enriching ${info.count} people for business email...`);
+    console.log(progressLine());
+  });
+
+  job.on('enriched', (lead) => {
+    if (lead.found_business_email) return; // email event prints success
+    const label = personLabel(lead);
+    if (lead.enrichment_status === 'cached') {
+      console.log(`   ↺ Cached (no business email yet): ${label}`);
+    } else if (lead.enrichment_status === 'waterfall_pending' || lead.enrichment_status === 'awaiting_waterfall') {
+      console.log(`   … Waterfall pending: ${label}`);
+    } else {
+      console.log(`   ✗ No business email: ${label}`);
+    }
   });
 
   job.on('email', (lead) => {
     const n = job.stats.business_emails_found;
     const total = args.emails;
-    console.log(`[${n}/${total}] ${lead.name || lead.first_name} <${lead.business_email}>`);
+    console.log(`   ✓ [${n}/${total}] ${personLabel(lead)}`);
+    console.log(`      ${lead.business_email}${lead.business_email_status ? ` (${lead.business_email_status})` : ''}`);
+    console.log(progressLine());
   });
 
   job.on('error', (err) => {
     if (err instanceof ApolloApiError) {
-      console.error(err.message);
+      console.error(`   ! ${err.message}`);
     } else {
-      console.error(`Error: ${err.message}`);
+      console.error(`   ! Error: ${err.message}`);
     }
   });
 

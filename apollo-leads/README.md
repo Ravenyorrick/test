@@ -126,8 +126,7 @@ Create a key: [Create an API Key](https://docs.apollo.io/docs/create-api-key)
 ```bash
 node index.js \
   --url "https://app.apollo.io/#/people?..." \
-  --max-pages 5 \
-  --per-page 100 \
+  --emails 50 \
   --concurrency 2 \
   --output ./exports/leads.csv
 ```
@@ -135,8 +134,7 @@ node index.js \
 | Flag | Description |
 |---|---|
 | `--url` | Apollo people search URL (prompted if omitted) |
-| `--max-pages` | Max pages to fetch |
-| `--per-page` | Results per page (max 100) |
+| `--emails` / `--limit` | **Total business emails to extract** (prompted if omitted) |
 | `--concurrency` | Concurrent API requests |
 | `--waterfall-email` | Enable waterfall email fallback |
 | `--personal-email` | Reveal personal emails (optional) |
@@ -144,8 +142,12 @@ node index.js \
 | `--output` | `.csv` or `.json` export path |
 | `--webhook-url` | Waterfall webhook URL |
 | `--reset-api-key` | Prompt for a new key and overwrite `.env` |
+| `--max-pages` | Advanced: internal search page cap |
+| `--per-page` | Advanced: internal page size (max 100) |
 
 If `--output` is omitted, a timestamped CSV is written under `exports/`.
+
+Pagination is handled automatically. You ask for a total email count; the tool keeps searching/enriching until that many business emails are collected (or results run out).
 
 ---
 
@@ -159,8 +161,7 @@ await ensureApolloApiKey();
 
 const extractor = new ApolloExtractor({
   apiKey: process.env.APOLLO_API_KEY,
-  maxPages: 10,
-  perPage: 100,
+  emailLimit: 25, // total business emails to collect
   concurrency: 2,
   enrich: true,
   waterfallEmail: false,
@@ -168,7 +169,7 @@ const extractor = new ApolloExtractor({
   cache: true,
 });
 
-const job = extractor.extractFromUrl(APOLLO_URL);
+const job = extractor.extractFromUrl(APOLLO_URL, { emailLimit: 25 });
 
 job.on('search', (info) => console.log('page', info.page, info.people_count));
 job.on('email', (lead) => console.log(lead.business_email));
