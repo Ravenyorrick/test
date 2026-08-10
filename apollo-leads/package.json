@@ -1,0 +1,38 @@
+{
+  "name": "apollo-leads",
+  "version": "1.0.0",
+  "description": "Node.js package for extracting and enriching leads from Apollo.io using the official Apollo API",
+  "main": "src/index.js",
+  "bin": {
+    "apollo-leads": "index.js"
+  },
+  "scripts": {
+    "start": "node index.js",
+    "setup": "node scripts/setup-api-key.js",
+    "test": "node --test tests/*.test.js",
+    "example": "node examples/basic.js",
+    "live-test": "node scripts/live-api-chain.js"
+  },
+  "keywords": [
+    "apollo",
+    "apollo.io",
+    "leads",
+    "enrichment",
+    "people-search",
+    "business-email"
+  ],
+  "license": "MIT",
+  "engines": {
+    "node": ">=18"
+  },
+  "dependencies": {
+    "dotenv": "^16.4.7"
+  },
+  "files": [
+    "src",
+    "index.js",
+    "examples",
+    ".env.example",
+    "README.md"
+  ]
+}
