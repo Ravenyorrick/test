@@ -46,6 +46,7 @@ class ExtractionJob extends EventEmitter {
       people_deduped: 0,
       enrichment_requests: 0,
       enrichment_skipped_cache: 0,
+      enrichment_skipped_no_email_flag: 0,
       business_emails_found: 0,
       business_emails_not_found: 0,
       personal_emails_found: 0,
@@ -151,6 +152,10 @@ class ExtractionEngine {
    * @param {string} [options.cachePath]
    * @param {boolean} [options.forceReEnrich=false]
    * @param {boolean} [options.enrichMissingEmail=false]
+   * @param {boolean} [options.onlyHasEmail] Prefer/require search has_email=true before enriching.
+   *   Defaults to true when emailLimit is set (credit-safe). Apollo charges ~1 credit for
+   *   demographics/email even when no email is returned, so skipping people without has_email
+   *   avoids wasting credits.
    * @param {boolean} [options.useBulk=true]
    * @param {boolean} [options.includeRaw=false]
    * @param {string} [options.webhookUrl]
@@ -171,6 +176,7 @@ class ExtractionEngine {
       cache: true,
       forceReEnrich: false,
       enrichMissingEmail: false,
+      onlyHasEmail: undefined,
       useBulk: true,
       includeRaw: false,
       waterfallTimeoutMs: 180000,
@@ -301,6 +307,15 @@ class ExtractionEngine {
     // spending credits on a bulk buffer. Apollo People Enrichment is typically
     // 1 credit per person for demographics/email (0 if nothing returned).
     const creditSafeMode = Boolean(emailLimit);
+    // Default: only enrich people Apollo already flags as having email.
+    // Search is free; enriching someone without has_email often still costs
+    // 1 credit for demographics while returning no business email.
+    const onlyHasEmail =
+      opts.onlyHasEmail !== undefined
+        ? Boolean(opts.onlyHasEmail)
+        : creditSafeMode;
+    job.stats.only_has_email = onlyHasEmail;
+
     if (emailLimit) {
       perPage = Math.min(100, opts.perPage ?? Math.min(100, Math.max(10, emailLimit)));
       const estimatedPages = Math.ceil(emailLimit / perPage) * 10;
@@ -384,6 +399,25 @@ class ExtractionEngine {
             includeRaw: opts.includeRaw,
           });
           job.results.push(lead);
+          continue;
+        }
+
+        // Credit guard: do not enrich people Apollo says have no email.
+        // Enrichment can still bill 1 credit for demographics with no email.
+        if (onlyHasEmail && extracted.has_email !== true) {
+          job.stats.enrichment_skipped_no_email_flag += 1;
+          const skippedLead = normalizeLead({
+            searchPerson: extracted,
+            enrichmentStatus: 'skipped_no_email_flag',
+            emailSource: 'none',
+            includeRaw: opts.includeRaw,
+          });
+          job.results.push(skippedLead);
+          job.emit('skipped', {
+            reason: 'no_email_flag',
+            person: extracted,
+            lead: skippedLead,
+          });
           continue;
         }
 

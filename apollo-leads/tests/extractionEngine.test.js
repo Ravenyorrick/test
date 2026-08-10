@@ -134,6 +134,104 @@ describe('ApolloExtractor job controls', () => {
     assert.ok(searchCalls <= 2);
   });
 
+  it('skips enriching people without has_email when emailLimit is set', async () => {
+    const extractor = new ApolloExtractor({
+      apiKey: 'test-key-not-real',
+      emailLimit: 2,
+      enrich: true,
+      cache: false,
+      concurrency: 1,
+      perPage: 3,
+    });
+
+    let matchCalls = 0;
+    let searchCalls = 0;
+    extractor.engine.client.post = async (path, options) => {
+      if (path.includes('api_search')) {
+        searchCalls += 1;
+        const page = options.body.page;
+        // Page 1: only people without email flags (must skip, 0 enrich credits)
+        // Page 2: people with has_email (enrich these)
+        if (page === 1) {
+          return {
+            status: 200,
+            data: {
+              total_entries: 5,
+              people: [
+                {
+                  id: 'no-email-1',
+                  first_name: 'Skip',
+                  has_email: false,
+                  organization: { name: 'Co', primary_domain: 'co.com' },
+                },
+                {
+                  id: 'no-email-2',
+                  first_name: 'Skip2',
+                  has_email: false,
+                  organization: { name: 'Co', primary_domain: 'co.com' },
+                },
+                {
+                  id: 'no-email-3',
+                  first_name: 'Skip3',
+                  // missing has_email should also be skipped
+                  organization: { name: 'Co', primary_domain: 'co.com' },
+                },
+              ],
+            },
+          };
+        }
+        return {
+          status: 200,
+          data: {
+            total_entries: 5,
+            people: [
+              {
+                id: 'yes-email-1',
+                first_name: 'Keep',
+                has_email: true,
+                organization: { name: 'Co', primary_domain: 'co.com' },
+              },
+              {
+                id: 'yes-email-2',
+                first_name: 'Keep2',
+                has_email: true,
+                organization: { name: 'Co', primary_domain: 'co.com' },
+              },
+            ],
+          },
+        };
+      }
+
+      matchCalls += 1;
+      const id = options.query?.id || `m-${matchCalls}`;
+      return {
+        status: 200,
+        data: {
+          person: {
+            id,
+            first_name: 'X',
+            last_name: 'Y',
+            email: `${id}@co.com`,
+            email_status: 'verified',
+            organization: { name: 'Co', primary_domain: 'co.com' },
+          },
+        },
+      };
+    };
+
+    const outcome = await extractor.extractFromUrl(
+      'https://app.apollo.io/#/people?personTitles[]=ceo',
+      { emailLimit: 2, perPage: 3 }
+    );
+
+    assert.equal(outcome.stats.enrichment_skipped_no_email_flag, 3);
+    assert.equal(outcome.stats.enrichment_requests, 2);
+    assert.equal(matchCalls, 2);
+    assert.ok(searchCalls >= 2);
+    assert.equal(outcome.stats.business_emails_found, 2);
+    assert.ok(outcome.results.every((r) => r.business_email));
+  });
+
   it('surfaces Apollo 422 validation errors clearly', async () => {
     const extractor = new ApolloExtractor({
       apiKey: 'test-key-not-real',

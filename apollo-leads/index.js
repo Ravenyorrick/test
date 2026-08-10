@@ -31,6 +31,8 @@ Options:
   --no-enrich              Search only; skip enrichment
   --force-re-enrich        Ignore cache and re-enrich
   --enrich-missing-email   Re-enrich cached people missing business email
+  --allow-no-email-flag    Also enrich people Apollo did not flag with has_email
+                           (can waste 1 credit on demographics with no email)
   --output <path>          Export path (.csv or .json)
   --webhook-url <url>      HTTPS webhook URL for waterfall results
   --reset-api-key          Ignore saved key and prompt for a new one
@@ -57,6 +59,7 @@ function parseArgs(argv) {
     enrich: true,
     forceReEnrich: false,
     enrichMissingEmail: false,
+    allowNoEmailFlag: false,
     output: null,
     webhookUrl: process.env.APOLLO_WEBHOOK_URL || null,
     resetApiKey: false,
@@ -108,6 +111,9 @@ function parseArgs(argv) {
         break;
       case '--enrich-missing-email':
         args.enrichMissingEmail = true;
+        break;
+      case '--allow-no-email-flag':
+        args.allowNoEmailFlag = true;
         break;
       case '--output':
         args.output = next;
@@ -224,6 +230,8 @@ async function main() {
     webhookUrl: args.webhookUrl,
     forceReEnrich: args.forceReEnrich,
     enrichMissingEmail: args.enrichMissingEmail,
+    // Default credit-safe: only enrich people Apollo flags with has_email
+    onlyHasEmail: args.allowNoEmailFlag ? false : true,
     cache: true,
     debug: process.env.DEBUG === 'true',
     // Save each business email to disk immediately (crash-safe)
@@ -239,8 +247,9 @@ async function main() {
   console.log(`Email target: ${args.emails}`);
   console.log(`Autosave file: ${outPath}`);
   console.log('(Each email is saved immediately so a crash does not lose progress.)');
-  console.log('Credits: search=0; each person enrich ≈1 credit for business email (no phone/waterfall).');
-  console.log('         Enrichment stops as soon as your email total is reached.');
+  console.log('Credits: search=0; enrich ≈1 credit per person for business email (no phone/waterfall).');
+  console.log('         Only enriches people Apollo flags with has_email (skips the rest for free).');
+  console.log('         One enrich at a time; stops as soon as your email total is reached.');
   console.log('');
 
   const mapped = extractor.parseUrl(args.url);
@@ -307,12 +316,19 @@ async function main() {
 
   job.on('person', (person) => {
     personSeq += 1;
-    console.log(`👤 #${personSeq} Found: ${personLabel(person)}`);
+    const emailHint = person.has_email === true ? 'has_email' : 'no email flag';
+    console.log(`👤 #${personSeq} Found: ${personLabel(person)} (${emailHint})`);
+  });
+
+  job.on('skipped', (info) => {
+    if (info.reason === 'no_email_flag') {
+      console.log(`   ↷ Skip enrich (no has_email — would risk 1 credit with no email)`);
+    }
   });
 
   job.on('enriching', (info) => {
     console.log('');
-    console.log(`⚡ Enriching ${info.count} people for business email...`);
+    console.log(`⚡ Enriching 1 person for business email (≈1 credit)...`);
     console.log(progressLine());
   });
 
@@ -377,8 +393,19 @@ async function main() {
     }
     console.log(`People scanned: ${outcome.stats.people_found}`);
     console.log(`Enrichment requests: ${outcome.stats.enrichment_requests}`);
+    console.log(`Skipped (no has_email): ${outcome.stats.enrichment_skipped_no_email_flag || 0}`);
     console.log(`Cache skips: ${outcome.stats.enrichment_skipped_cache}`);
     console.log(`Credits used: ${outcome.stats.credits_used}`);
+    if (
+      outcome.stats.enrichment_requests > 0 &&
+      outcome.stats.business_emails_found > 0
+    ) {
+      console.log(
+        `Approx credits/email: ${(
+          outcome.stats.enrichment_requests / outcome.stats.business_emails_found
+        ).toFixed(2)} (target ≈ 1.0)`
+      );
+    }
   }
 
   console.log(`Exported: ${outPath}`);
