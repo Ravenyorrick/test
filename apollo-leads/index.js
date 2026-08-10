@@ -247,9 +247,11 @@ async function main() {
   console.log(`Email target: ${args.emails}`);
   console.log(`Autosave file: ${outPath}`);
   console.log('(Each email is saved immediately so a crash does not lose progress.)');
-  console.log('Credits: search=0; enrich ≈1 credit per person for business email (no phone/waterfall).');
-  console.log('         Only enriches people Apollo flags with has_email (skips the rest for free).');
-  console.log('         One enrich at a time; stops as soon as your email total is reached.');
+  console.log('How Apollo API credits work (not the same as the website UI):');
+  console.log('  1) Search people        = 0 credits  (names/titles only; NO email returned)');
+  console.log('  2) Enrich / reveal email = 1 credit   (person + business email together)');
+  console.log('     → NOT 1 credit to find + 1 credit to reveal. Reveal is the only paid step.');
+  console.log('  Skips people without has_email. Phone/waterfall off. Stops at your email total.');
   console.log('');
 
   const mapped = extractor.parseUrl(args.url);
@@ -296,10 +298,12 @@ async function main() {
     const found = job.stats.business_emails_found || 0;
     const target = args.emails;
     const scanned = job.stats.people_found || 0;
+    const enrichCalls = job.stats.enrichment_requests || 0;
+    const searchCalls = job.stats.search_requests || 0;
     const pct = target ? Math.min(100, Math.round((found / target) * 100)) : 0;
     const filled = Math.round(pct / 5);
     const bar = `${'█'.repeat(filled)}${'░'.repeat(20 - filled)}`;
-    return `[${bar}] ${found}/${target} emails  |  scanned ${scanned}`;
+    return `[${bar}] ${found}/${target} emails  |  searched ${scanned} (0 cr)  |  enrich ${enrichCalls} (≈${enrichCalls} cr)  |  search pages ${searchCalls}`;
   }
 
   console.log('────────────────────────────────────────');
@@ -309,26 +313,26 @@ async function main() {
   console.log('');
 
   job.on('search', (info) => {
-    console.log(`🔎 Search batch: ${info.people_count} people found`);
+    console.log(`🔎 Search (0 credits): ${info.people_count} people in this page (no emails yet)`);
     console.log(progressLine());
     console.log('');
   });
 
   job.on('person', (person) => {
     personSeq += 1;
-    const emailHint = person.has_email === true ? 'has_email' : 'no email flag';
-    console.log(`👤 #${personSeq} Found: ${personLabel(person)} (${emailHint})`);
+    const emailHint = person.has_email === true ? 'has_email → will enrich' : 'no email flag → skip';
+    console.log(`👤 #${personSeq} Listed (free): ${personLabel(person)} (${emailHint})`);
   });
 
   job.on('skipped', (info) => {
     if (info.reason === 'no_email_flag') {
-      console.log(`   ↷ Skip enrich (no has_email — would risk 1 credit with no email)`);
+      console.log(`   ↷ Skip enrich (0 credits — Apollo has_email=false)`);
     }
   });
 
   job.on('enriching', (info) => {
     console.log('');
-    console.log(`⚡ Enriching 1 person for business email (≈1 credit)...`);
+    console.log(`⚡ Reveal email via enrich (≈1 credit for person + email together)...`);
     console.log(progressLine());
   });
 
