@@ -70,6 +70,65 @@ describe('ApolloExtractor job controls', () => {
     assert.ok(outcome.results.every((r) => r.apollo_person_id));
   });
 
+  it('stops when emailLimit business emails are found', async () => {
+    const extractor = new ApolloExtractor({
+      apiKey: 'test-key-not-real',
+      emailLimit: 3,
+      enrich: true,
+      cache: false,
+      concurrency: 1,
+      useBulk: true,
+    });
+
+    let searchCalls = 0;
+    extractor.engine.client.post = async (path, options) => {
+      if (path.includes('api_search')) {
+        searchCalls += 1;
+        const page = options.body.page;
+        return {
+          status: 200,
+          data: {
+            total_entries: 100,
+            people: Array.from({ length: 5 }, (_, i) => ({
+              id: `p-${page}-${i}`,
+              first_name: `Person${page}${i}`,
+              title: 'CEO',
+              organization: { name: 'Co', primary_domain: 'co.com' },
+            })),
+          },
+        };
+      }
+
+      // bulk_match
+      const details = options.body.details || [];
+      return {
+        status: 200,
+        data: {
+          matches: details.map((d, idx) => ({
+            id: d.id,
+            first_name: 'X',
+            last_name: 'Y',
+            email: `user${d.id}@co.com`,
+            email_status: 'verified',
+            organization: { name: 'Co', primary_domain: 'co.com' },
+          })),
+        },
+      };
+    };
+
+    const outcome = await extractor.extractFromUrl(
+      'https://app.apollo.io/#/people?personTitles[]=ceo',
+      { emailLimit: 3 }
+    );
+
+    assert.equal(outcome.reached_email_limit, true);
+    assert.ok(outcome.stats.business_emails_found >= 3);
+    assert.equal(outcome.results.length, 3);
+    assert.ok(outcome.results.every((r) => r.business_email));
+    // Should not keep searching forever after target is hit
+    assert.ok(searchCalls <= 2);
+  });
+
   it('surfaces Apollo 422 validation errors clearly', async () => {
     const extractor = new ApolloExtractor({
       apiKey: 'test-key-not-real',

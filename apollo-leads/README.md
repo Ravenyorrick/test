@@ -18,29 +18,25 @@ Primary goal: retrieve each person’s **business/work email**.
 npm install
 ```
 
-4. Start an extraction (you will be prompted for your API key the first time):
-
-```bash
-node index.js --url "https://app.apollo.io/#/people?..." --max-pages 1 --per-page 10
-```
-
-Or run with no flags and answer the prompts:
+4. Start an extraction:
 
 ```bash
 node index.js
 ```
 
-On first run you will see:
+You will be asked for:
 
-```text
-Apollo API key required.
-Create one at: https://docs.apollo.io/docs/create-api-key
-It will be saved locally to .env for next time (never committed).
+1. **Apollo API key** (first run only — saved to `.env`)
+2. **Apollo people search URL**
+3. **How many emails to extract in total** (not pages)
 
-Enter APOLLO_API_KEY:
+Example non-interactive command:
+
+```bash
+node index.js --url "https://app.apollo.io/#/people?..." --emails 25
 ```
 
-Your key is saved to a local `.env` file so later runs reuse it automatically.
+The tool paginates under the hood and **stops when it has collected that many business emails**.
 
 To change the saved key later:
 

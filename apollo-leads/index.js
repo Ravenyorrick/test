@@ -7,19 +7,24 @@ const path = require('path');
 require('dotenv').config({ path: path.join(__dirname, '.env') });
 
 const { ApolloExtractor, ApolloApiError } = require('./src');
-const { ensureApolloApiKey, ensureValue } = require('./src/credentials');
+const { ensureApolloApiKey, ensureValue, promptVisible } = require('./src/credentials');
 
 function printUsage() {
   console.log(`Usage:
-  node index.js --url "APOLLO_URL" [options]
+  node index.js --url "APOLLO_URL" --emails 25 [options]
 
-  If APOLLO_API_KEY is not set, you will be prompted and it will be
-  saved to .env for future runs.
+  Interactive mode (recommended):
+    node index.js
+
+  You will be asked for:
+    1) Apollo API key (saved to .env for next time)
+    2) Apollo people search URL
+    3) How many emails to extract in total
 
 Options:
   --url <url>              Apollo people search URL
-  --max-pages <n>          Max search pages (default: 10)
-  --per-page <n>           Results per page, max 100 (default: 100)
+  --emails <n>             Total business emails to extract (not pages)
+  --limit <n>              Alias for --emails
   --concurrency <n>        Concurrent API requests (default: 2)
   --waterfall-email        Enable waterfall email fallback (requires webhook)
   --personal-email         Reveal personal emails (optional; default off)
@@ -29,19 +34,23 @@ Options:
   --output <path>          Export path (.csv or .json)
   --webhook-url <url>      HTTPS webhook URL for waterfall results
   --reset-api-key          Ignore saved key and prompt for a new one
+  --max-pages <n>          Advanced: cap internal search pages
+  --per-page <n>           Advanced: internal page size (max 100)
   --help                   Show help
 
 Examples:
-  node index.js --url "https://app.apollo.io/#/people?..." --max-pages 1 --per-page 10
-  node index.js --url "https://app.apollo.io/#/people?..." --output ./exports/leads.csv
+  node index.js
+  node index.js --url "https://app.apollo.io/#/people?..." --emails 10
+  node index.js --url "https://app.apollo.io/#/people?..." --emails 50 --output ./exports/leads.csv
 `);
 }
 
 function parseArgs(argv) {
   const args = {
     url: null,
-    maxPages: 10,
-    perPage: 100,
+    emails: null,
+    maxPages: null,
+    perPage: null,
     concurrency: 2,
     waterfallEmail: false,
     personalEmail: false,
@@ -65,6 +74,12 @@ function parseArgs(argv) {
         break;
       case '--url':
         args.url = next;
+        i += 1;
+        break;
+      case '--emails':
+      case '--limit':
+      case '--count':
+        args.emails = Number(next);
         i += 1;
         break;
       case '--max-pages':
@@ -139,6 +154,25 @@ function defaultOutputPath() {
   return path.join(__dirname, 'exports', `leads-${stamp}.csv`);
 }
 
+async function promptEmailCount(current) {
+  if (Number.isFinite(current) && current > 0) return current;
+
+  if (!process.stdin.isTTY) {
+    throw new Error('Pass --emails <n> (total business emails to extract).');
+  }
+
+  while (true) {
+    const answer = await promptVisible(
+      'How many emails do you want to extract in total?\n> '
+    );
+    const n = Number(String(answer || '').trim());
+    if (Number.isFinite(n) && n > 0 && Number.isInteger(n)) {
+      return n;
+    }
+    console.log('Please enter a whole number greater than 0 (example: 10).');
+  }
+}
+
 async function main() {
   const args = parseArgs(process.argv.slice(2));
 
@@ -151,13 +185,13 @@ async function main() {
     delete process.env.APOLLO_API_KEY;
   }
 
-  // Prompt + save API key when missing
+  // 1) Prompt + save API key when missing
   await ensureApolloApiKey({
     prompt: true,
     save: true,
   });
 
-  // Prompt for URL when not passed on the command line
+  // 2) Prompt for URL when not passed
   if (!args.url) {
     args.url = await ensureValue(
       'url',
@@ -171,14 +205,16 @@ async function main() {
     process.exit(1);
   }
 
+  // 3) Prompt for TOTAL emails (not pages)
+  args.emails = await promptEmailCount(args.emails);
+
   if (!args.output) {
     args.output = defaultOutputPath();
   }
 
-  const extractor = new ApolloExtractor({
+  const extractorOptions = {
     apiKey: process.env.APOLLO_API_KEY,
-    maxPages: args.maxPages,
-    perPage: args.perPage,
+    emailLimit: args.emails,
     concurrency: args.concurrency,
     enrich: args.enrich,
     waterfallEmail: args.waterfallEmail,
@@ -188,9 +224,15 @@ async function main() {
     enrichMissingEmail: args.enrichMissingEmail,
     cache: true,
     debug: process.env.DEBUG === 'true',
-  });
+  };
+
+  if (args.maxPages != null) extractorOptions.maxPages = args.maxPages;
+  if (args.perPage != null) extractorOptions.perPage = args.perPage;
+
+  const extractor = new ApolloExtractor(extractorOptions);
 
   console.log('Apollo API: Connected');
+  console.log(`Email target: ${args.emails}`);
   console.log('');
 
   const mapped = extractor.parseUrl(args.url);
@@ -214,21 +256,29 @@ async function main() {
   console.log('');
 
   const job = extractor.extractFromUrl(args.url, {
-    maxPages: args.maxPages,
-    perPage: args.perPage,
+    emailLimit: args.emails,
+    maxPages: args.maxPages ?? undefined,
+    perPage: args.perPage ?? undefined,
   });
 
   job.on('search', (info) => {
-    console.log(`Page ${info.page}`);
-    console.log(`People found: ${info.people_count}`);
-    if (info.total_entries != null) {
-      console.log(`Total matching (Apollo): ${info.total_entries}`);
-    }
-    console.log('');
+    const progress = info.email_limit
+      ? ` | emails so far: ${info.business_emails_found || 0}/${info.email_limit}`
+      : '';
+    console.log(`Searching... found ${info.people_count} people${progress}`);
   });
 
   job.on('enriching', (info) => {
-    console.log(`Enriching... (${info.count} people)`);
+    const progress = info.email_limit
+      ? ` (${info.business_emails_found || 0}/${info.email_limit} emails so far)`
+      : '';
+    console.log(`Enriching ${info.count} people...${progress}`);
+  });
+
+  job.on('email', (lead) => {
+    const n = job.stats.business_emails_found;
+    const total = args.emails;
+    console.log(`[${n}/${total}] ${lead.name || lead.first_name} <${lead.business_email}>`);
   });
 
   job.on('error', (err) => {
@@ -245,12 +295,21 @@ async function main() {
   if (args.enrich) {
     console.log(`Business emails found: ${outcome.stats.business_emails_found}`);
     console.log(`Business emails not found: ${outcome.stats.business_emails_not_found}`);
+    console.log(`Email target: ${args.emails}`);
+    if (outcome.reached_email_limit) {
+      console.log('Reached requested email total.');
+    } else if (outcome.stats.business_emails_found < args.emails) {
+      console.log(
+        `Stopped early with ${outcome.stats.business_emails_found}/${args.emails} emails (no more matching people or enrichment returned fewer emails).`
+      );
+    }
     if (args.personalEmail) {
       console.log(`Personal emails found: ${outcome.stats.personal_emails_found}`);
     }
     if (args.waterfallEmail) {
       console.log(`Waterfall requests: ${outcome.stats.waterfall_requests}`);
     }
+    console.log(`People scanned: ${outcome.stats.people_found}`);
     console.log(`Enrichment requests: ${outcome.stats.enrichment_requests}`);
     console.log(`Cache skips: ${outcome.stats.enrichment_skipped_cache}`);
     console.log(`Credits used: ${outcome.stats.credits_used}`);
@@ -263,12 +322,14 @@ async function main() {
         stats: outcome.stats,
         filters: outcome.filters,
         unsupported: outcome.unsupported,
+        email_limit: args.emails,
       },
     });
   } else {
     extractor.exportToCSV(outcome.results, outPath);
   }
   console.log(`Exported: ${outPath}`);
+  console.log(`Exported rows: ${outcome.results.length}`);
 
   console.log('');
   console.log('Completed.');

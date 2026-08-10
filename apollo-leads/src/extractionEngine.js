@@ -242,6 +242,17 @@ class ExtractionEngine {
     return webhookUrl;
   }
 
+  _emailLimitReached(job, emailLimit) {
+    return Number.isFinite(emailLimit) && emailLimit > 0
+      && job.stats.business_emails_found >= emailLimit;
+  }
+
+  _trimToEmailLimit(results, emailLimit) {
+    if (!Number.isFinite(emailLimit) || emailLimit <= 0) return results;
+    // In email-total mode, return only leads that have a business email, capped at the target.
+    return results.filter((lead) => lead.found_business_email).slice(0, emailLimit);
+  }
+
   async _executeJob(job) {
     const opts = { ...this.options, ...job.options };
     const mapped = parseAndMapApolloUrl(job.url);
@@ -256,11 +267,26 @@ class ExtractionEngine {
       });
     }
 
+    const emailLimit = Number(opts.emailLimit || opts.limit || 0) || null;
+    job.stats.email_limit = emailLimit;
+
     const seenIds = new Set();
-    const peopleToEnrich = [];
     let page = mapped.filters.page || 1;
-    const maxPages = opts.maxPages ?? 10;
-    const perPage = Math.min(100, opts.perPage ?? 100);
+
+    // When an email total is requested, paginate under the hood automatically.
+    // Otherwise keep the legacy maxPages/perPage behavior.
+    let perPage;
+    let maxPages;
+    if (emailLimit) {
+      perPage = Math.min(100, opts.perPage ?? Math.min(100, Math.max(10, emailLimit)));
+      // Safety: scan enough pages to likely reach the email target.
+      // Stop early once enough business emails are found.
+      const estimatedPages = Math.ceil(emailLimit / perPage) * 10;
+      maxPages = opts.maxPages ?? Math.min(500, Math.max(1, estimatedPages));
+    } else {
+      perPage = Math.min(100, opts.perPage ?? 100);
+      maxPages = opts.maxPages ?? 10;
+    }
 
     // Remove pagination from reusable filters object
     const filters = { ...mapped.filters };
@@ -269,10 +295,15 @@ class ExtractionEngine {
 
     let pagesFetched = 0;
     let totalEntries = null;
+    let reachedEmailLimit = false;
 
     while (pagesFetched < maxPages) {
       await job._waitIfPaused();
       if (!job.shouldContinue()) break;
+      if (this._emailLimitReached(job, emailLimit)) {
+        reachedEmailLimit = true;
+        break;
+      }
 
       const searchResult = await this.rateLimiter.schedule(() =>
         searchPeople(this.client, filters, { page, perPage })
@@ -288,13 +319,21 @@ class ExtractionEngine {
         per_page: perPage,
         people_count: searchResult.people.length,
         total_entries: totalEntries,
+        business_emails_found: job.stats.business_emails_found,
+        email_limit: emailLimit,
       });
 
       if (!searchResult.people.length) break;
 
+      const pagePeopleToEnrich = [];
+
       for (const rawPerson of searchResult.people) {
         await job._waitIfPaused();
         if (!job.shouldContinue()) break;
+        if (this._emailLimitReached(job, emailLimit)) {
+          reachedEmailLimit = true;
+          break;
+        }
 
         const extracted = extractSearchPerson(rawPerson);
         if (!extracted?.apollo_person_id) continue;
@@ -334,30 +373,41 @@ class ExtractionEngine {
             })
           );
           this._recordLead(job, cachedLead);
+          if (this._emailLimitReached(job, emailLimit)) {
+            reachedEmailLimit = true;
+            break;
+          }
           continue;
         }
 
-        peopleToEnrich.push(extracted);
+        pagePeopleToEnrich.push(extracted);
       }
 
-      if (!job.shouldContinue()) break;
+      // Enrich this page immediately so an emailLimit can stop early
+      if (opts.enrich && pagePeopleToEnrich.length && job.shouldContinue() && !reachedEmailLimit) {
+        job.emit('enriching', {
+          count: pagePeopleToEnrich.length,
+          business_emails_found: job.stats.business_emails_found,
+          email_limit: emailLimit,
+        });
+
+        if (opts.useBulk) {
+          await this._enrichBulk(job, pagePeopleToEnrich, opts, webhookUrl, emailLimit);
+        } else {
+          await this._enrichSingle(job, pagePeopleToEnrich, opts, webhookUrl, emailLimit);
+        }
+      }
+
+      if (!job.shouldContinue() || reachedEmailLimit || this._emailLimitReached(job, emailLimit)) {
+        reachedEmailLimit = reachedEmailLimit || this._emailLimitReached(job, emailLimit);
+        break;
+      }
       if (searchResult.people.length < perPage) break;
 
       const fetchedSoFar = (page - 1) * perPage + searchResult.people.length;
       if (fetchedSoFar >= Math.min(totalEntries ?? Infinity, 50000)) break;
 
       page += 1;
-    }
-
-    // Enrichment stage
-    if (opts.enrich && peopleToEnrich.length && job.shouldContinue()) {
-      job.emit('enriching', { count: peopleToEnrich.length });
-
-      if (opts.useBulk) {
-        await this._enrichBulk(job, peopleToEnrich, opts, webhookUrl);
-      } else {
-        await this._enrichSingle(job, peopleToEnrich, opts, webhookUrl);
-      }
     }
 
     // Optionally wait for waterfall webhook results for pending leads
@@ -371,18 +421,24 @@ class ExtractionEngine {
 
     this._finalizeCredits(job);
 
+    const results = this._trimToEmailLimit(job.results, emailLimit);
+    // Keep job.results aligned with returned export set when limit is used
+    if (emailLimit) job.results = results;
+
     return {
-      results: job.results,
+      results,
       stats: job.stats,
       filters: mapped.filters,
       unsupported: mapped.unsupported,
       unsupportedDetails: mapped.unsupportedDetails,
       summary: mapped.summary,
+      email_limit: emailLimit,
+      reached_email_limit: Boolean(reachedEmailLimit || this._emailLimitReached(job, emailLimit)),
       stopped: !job.shouldContinue() && job.status === 'stopped',
     };
   }
 
-  async _enrichBulk(job, people, opts, webhookUrl) {
+  async _enrichBulk(job, people, opts, webhookUrl, emailLimit = null) {
     // Stage 1: native enrichment (no waterfall) — business/work email first
     const missingBusiness = [];
 
@@ -391,13 +447,14 @@ class ExtractionEngine {
       runWaterfallEmail: false,
       includeRaw: opts.includeRaw,
       rateLimiter: this.rateLimiter,
-      shouldContinue: () => job.shouldContinue(),
+      shouldContinue: () => job.shouldContinue() && !this._emailLimitReached(job, emailLimit),
       onBatch: async ({ results: batchResults }) => {
         job.stats.enrichment_requests += 1;
 
         for (const item of batchResults) {
           await job._waitIfPaused();
           if (!job.shouldContinue()) break;
+          if (this._emailLimitReached(job, emailLimit)) break;
 
           if (item.lead.found_business_email) {
             this.cache.set(item.lead);
@@ -419,14 +476,19 @@ class ExtractionEngine {
     });
 
     // Stage 2: optional waterfall fallback for people without business email
-    if (opts.waterfallEmail && missingBusiness.length && job.shouldContinue()) {
+    if (
+      opts.waterfallEmail &&
+      missingBusiness.length &&
+      job.shouldContinue() &&
+      !this._emailLimitReached(job, emailLimit)
+    ) {
       await bulkEnrichPeopleBatched(this.client, missingBusiness, {
         revealPersonalEmails: false,
         runWaterfallEmail: true,
         webhookUrl,
         includeRaw: opts.includeRaw,
         rateLimiter: this.rateLimiter,
-        shouldContinue: () => job.shouldContinue(),
+        shouldContinue: () => job.shouldContinue() && !this._emailLimitReached(job, emailLimit),
         onBatch: async ({ results: batchResults, waterfall, request_id }) => {
           job.stats.enrichment_requests += 1;
 
@@ -445,6 +507,7 @@ class ExtractionEngine {
           for (const item of batchResults) {
             await job._waitIfPaused();
             if (!job.shouldContinue()) break;
+            if (this._emailLimitReached(job, emailLimit)) break;
 
             // Prefer any email returned synchronously; otherwise mark pending
             if (!item.lead.found_business_email &&
@@ -465,10 +528,11 @@ class ExtractionEngine {
     }
   }
 
-  async _enrichSingle(job, people, opts, webhookUrl) {
+  async _enrichSingle(job, people, opts, webhookUrl, emailLimit = null) {
     for (const person of people) {
       await job._waitIfPaused();
       if (!job.shouldContinue()) break;
+      if (this._emailLimitReached(job, emailLimit)) break;
 
       try {
         // Stage 1: native enrichment for business/work email
