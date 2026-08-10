@@ -11,7 +11,7 @@ const { bulkEnrichPeopleBatched } = require('./bulkPeopleEnrichment');
 const { EnrichmentCache } = require('./cache');
 const { RateLimiter } = require('./rateLimiter');
 const { WaterfallWebhookHandler } = require('./webhookServer');
-const { exportToCSV, exportToJSON } = require('./exporters');
+const { exportToCSV, exportToJSON, IncrementalExporter } = require('./exporters');
 const { normalizeLead } = require('./normalize');
 
 /**
@@ -158,6 +158,7 @@ class ExtractionEngine {
    * @param {number} [options.webhookPort]
    * @param {number} [options.waterfallTimeoutMs]
    * @param {boolean} [options.debug]
+   * @param {string} [options.autosavePath]  Save each business email to disk immediately
    */
   constructor(options = {}) {
     this.options = {
@@ -173,6 +174,7 @@ class ExtractionEngine {
       useBulk: true,
       includeRaw: false,
       waterfallTimeoutMs: 180000,
+      autosavePath: null,
       ...options,
     };
 
@@ -269,6 +271,24 @@ class ExtractionEngine {
 
     const emailLimit = Number(opts.emailLimit || opts.limit || 0) || null;
     job.stats.email_limit = emailLimit;
+
+    // Crash-safe incremental save: write each business email as soon as it is found
+    const autosavePath = opts.autosavePath || this.options.autosavePath || null;
+    /** @type {IncrementalExporter|null} */
+    let autosave = null;
+    if (autosavePath) {
+      autosave = new IncrementalExporter(autosavePath, {
+        emailsOnly: true,
+        meta: {
+          filters: mapped.filters,
+          unsupported: mapped.unsupported,
+          email_limit: emailLimit,
+        },
+      });
+      const startedPath = autosave.start();
+      job.autosave = autosave;
+      job.emit('autosave', { path: startedPath, count: 0, event: 'started' });
+    }
 
     const seenIds = new Set();
     let page = mapped.filters.page || 1;
@@ -437,6 +457,18 @@ class ExtractionEngine {
     // Keep job.results aligned with returned export set when limit is used
     if (emailLimit) job.results = results;
 
+    if (autosave) {
+      const finalizedPath = autosave.finalize(results, {
+        stats: job.stats,
+        reached_email_limit: Boolean(reachedEmailLimit || this._emailLimitReached(job, emailLimit)),
+      });
+      job.emit('autosave', {
+        path: finalizedPath,
+        count: autosave.count(),
+        event: 'finalized',
+      });
+    }
+
     return {
       results,
       stats: job.stats,
@@ -446,6 +478,7 @@ class ExtractionEngine {
       summary: mapped.summary,
       email_limit: emailLimit,
       reached_email_limit: Boolean(reachedEmailLimit || this._emailLimitReached(job, emailLimit)),
+      autosave_path: autosave ? autosave.path() : null,
       stopped: !job.shouldContinue() && job.status === 'stopped',
     };
   }
@@ -624,6 +657,25 @@ class ExtractionEngine {
     return !['searched', 'waterfall_pending', 'awaiting_waterfall'].includes(lead.enrichment_status);
   }
 
+  _autosaveLead(job, lead) {
+    if (!job.autosave || !lead?.found_business_email) return;
+    try {
+      const result = job.autosave.saveLead(lead);
+      if (result.saved) {
+        job.emit('autosave', {
+          path: result.path,
+          count: result.count,
+          event: 'saved',
+          apollo_person_id: lead.apollo_person_id,
+          business_email: lead.business_email,
+          name: lead.name || lead.first_name,
+        });
+      }
+    } catch (err) {
+      job.emit('error', new Error(`Autosave failed: ${err.message}`));
+    }
+  }
+
   _recordLead(job, lead) {
     // Replace existing result for same person if present (e.g. waterfall update)
     const idx = job.results.findIndex(
@@ -645,6 +697,9 @@ class ExtractionEngine {
     }
 
     if (lead.found_personal_email) job.stats.personal_emails_found += 1;
+
+    // Persist immediately so a crash does not lose completed emails
+    this._autosaveLead(job, lead);
   }
 
   _applyWaterfallEmail(job, record) {

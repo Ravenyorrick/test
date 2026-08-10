@@ -18,7 +18,7 @@ const {
 } = require('./bulkPeopleEnrichment');
 const { EnrichmentCache } = require('./cache');
 const { RateLimiter } = require('./rateLimiter');
-const { exportToCSV, exportToJSON } = require('./exporters');
+const { exportToCSV, exportToJSON, IncrementalExporter } = require('./exporters');
 const { normalizeLead } = require('./normalize');
 const { WaterfallWebhookHandler } = require('./webhookServer');
 const { ApolloExtractor, ExtractionEngine, ExtractionJob } = require('./extractionEngine');
@@ -70,6 +70,7 @@ module.exports = {
   RateLimiter,
   exportToCSV,
   exportToJSON,
+  IncrementalExporter,
   normalizeLead,
   WaterfallWebhookHandler,
 };

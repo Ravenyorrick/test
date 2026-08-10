@@ -211,6 +211,7 @@ async function main() {
   if (!args.output) {
     args.output = defaultOutputPath();
   }
+  const outPath = path.resolve(args.output);
 
   const extractorOptions = {
     apiKey: process.env.APOLLO_API_KEY,
@@ -224,6 +225,8 @@ async function main() {
     enrichMissingEmail: args.enrichMissingEmail,
     cache: true,
     debug: process.env.DEBUG === 'true',
+    // Save each business email to disk immediately (crash-safe)
+    autosavePath: outPath,
   };
 
   if (args.maxPages != null) extractorOptions.maxPages = args.maxPages;
@@ -233,6 +236,8 @@ async function main() {
 
   console.log('Apollo API: Connected');
   console.log(`Email target: ${args.emails}`);
+  console.log(`Autosave file: ${outPath}`);
+  console.log('(Each email is saved immediately so a crash does not lose progress.)');
   console.log('');
 
   const mapped = extractor.parseUrl(args.url);
@@ -259,6 +264,7 @@ async function main() {
     emailLimit: args.emails,
     maxPages: args.maxPages ?? undefined,
     perPage: args.perPage ?? undefined,
+    autosavePath: outPath,
   });
 
   let personSeq = 0;
@@ -327,6 +333,17 @@ async function main() {
     console.log(progressLine());
   });
 
+  job.on('autosave', (info) => {
+    if (info.event === 'started') {
+      console.log(`💾 Saving progress to: ${info.path}`);
+      console.log('');
+    } else if (info.event === 'saved') {
+      console.log(`   💾 Saved to file (${info.count} email${info.count === 1 ? '' : 's'} on disk)`);
+    } else if (info.event === 'finalized') {
+      console.log(`💾 Final file ready: ${info.path} (${info.count} emails)`);
+    }
+  });
+
   job.on('error', (err) => {
     if (err instanceof ApolloApiError) {
       console.error(`   ! ${err.message}`);
@@ -361,19 +378,6 @@ async function main() {
     console.log(`Credits used: ${outcome.stats.credits_used}`);
   }
 
-  const outPath = path.resolve(args.output);
-  if (outPath.toLowerCase().endsWith('.json')) {
-    extractor.exportToJSON(outcome.results, outPath, {
-      meta: {
-        stats: outcome.stats,
-        filters: outcome.filters,
-        unsupported: outcome.unsupported,
-        email_limit: args.emails,
-      },
-    });
-  } else {
-    extractor.exportToCSV(outcome.results, outPath);
-  }
   console.log(`Exported: ${outPath}`);
   console.log(`Exported rows: ${outcome.results.length}`);
 

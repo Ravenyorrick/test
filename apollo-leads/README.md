@@ -38,6 +38,8 @@ node index.js --url "https://app.apollo.io/#/people?..." --emails 25
 
 The tool paginates under the hood and **stops when it has collected that many business emails**.
 
+Each business email is **saved to the export file immediately** as it is found (crash-safe). If the process stops mid-run, completed emails remain in `exports/`.
+
 To change the saved key later:
 
 ```bash
