@@ -1,0 +1,38 @@
+.site-footer {
+  background: var(--color-footer-bg);
+  border-top: 1px solid var(--color-gray-300);
+  padding: 2.5rem 0 2rem;
+  text-align: center;
+}
+
+.footer-brand {
+  font-size: 1.05rem;
+  font-weight: 600;
+  margin-bottom: 0.75rem;
+  color: var(--color-black);
+}
+
+.footer-social {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 1rem;
+  transition: transform var(--transition), opacity var(--transition);
+}
+
+.footer-social:hover,
+.footer-social:focus-visible {
+  transform: translateY(-2px);
+  opacity: 0.85;
+}
+
+.footer-social img {
+  width: 28px;
+  height: 28px;
+}
+
+.footer-copy {
+  font-size: 0.85rem;
+  color: var(--color-gray-600);
+  margin: 0;
+}

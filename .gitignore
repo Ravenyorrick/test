@@ -1,0 +1,9 @@
+node_modules
+dist
+cpanel-upload
+.env
+.DS_Store
+*.log
+audit-raw
+tmp
+.vite

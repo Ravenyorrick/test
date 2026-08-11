@@ -1,0 +1,102 @@
+{
+  "site": "https://www.simmsgroupconsulting.com",
+  "auditedAt": "2026-08-11",
+  "pages": [
+    {
+      "path": "/",
+      "file": "HomePage",
+      "title": "Simms Group Consulting, LLC | Procurement & Contracting",
+      "nav": "Home",
+      "status": 200
+    },
+    {
+      "path": "/signature-advisory",
+      "file": "SignatureAdvisoryPage",
+      "title": "Signature Advisory | Simms Group Consulting",
+      "nav": "Signature Advisory",
+      "status": 200
+    },
+    {
+      "path": "/overview-of-services",
+      "file": "OverviewPage",
+      "title": "Overview | Simms Group Consulting",
+      "nav": "Overview",
+      "status": 200
+    },
+    {
+      "path": "/fractional-leaders",
+      "file": "FractionalLeadersPage",
+      "title": "Fractional Leaders | Simms Group Consulting",
+      "nav": "Fractional Leaders",
+      "status": 200
+    },
+    {
+      "path": "/process-capability-assessments",
+      "file": "ProcessAssessmentsPage",
+      "title": "Process & Capability Assessments | Simms Group Consulting",
+      "nav": "Process & Capability Assessments",
+      "status": 200
+    },
+    {
+      "path": "/ai-tools-implementation",
+      "file": "AiToolsPage",
+      "title": "AI Tools & Implementation | Simms Group Consulting",
+      "nav": "AI Tools & Implementation",
+      "status": 200
+    },
+    {
+      "path": "/tsg-coach",
+      "file": "TsgCoachPage",
+      "title": "TSG Coach | Simms Group Consulting",
+      "nav": "TSG Coach",
+      "status": 200
+    },
+    {
+      "path": "/our-team",
+      "file": "OurTeamPage",
+      "title": "Our Team | Simms Group Consulting",
+      "nav": "Meet the Team",
+      "navGroup": "More",
+      "status": 200
+    },
+    {
+      "path": "/mike-s-bio",
+      "file": "MikesBioPage",
+      "title": "Mike's Bio | Simms Group Consulting",
+      "nav": "Mike's Bio",
+      "navGroup": "More",
+      "status": 200
+    },
+    {
+      "path": "/contact-us",
+      "file": "ContactUsPage",
+      "title": "Contact Us | Simms Group Consulting, LLC",
+      "nav": "Contact Us",
+      "navGroup": "More",
+      "status": 200
+    }
+  ],
+  "navigation": {
+    "primary": [
+      { "label": "Home", "path": "/" },
+      { "label": "Signature Advisory", "path": "/signature-advisory" },
+      { "label": "Overview", "path": "/overview-of-services" },
+      { "label": "Fractional Leaders", "path": "/fractional-leaders" },
+      { "label": "Process & Capability Assessments", "path": "/process-capability-assessments" },
+      { "label": "AI Tools & Implementation", "path": "/ai-tools-implementation" },
+      { "label": "TSG Coach", "path": "/tsg-coach" }
+    ],
+    "more": [
+      { "label": "Meet the Team", "path": "/our-team" },
+      { "label": "Mike's Bio", "path": "/mike-s-bio" },
+      { "label": "Contact Us", "path": "/contact-us" }
+    ]
+  },
+  "external": {
+    "linkedinCompany": "https://www.linkedin.com/company/the-simms-group/",
+    "linkedinMike": "https://www.linkedin.com/in/michaelsimms01",
+    "emailMike": "mike@simmsgroupconsulting.com",
+    "emailCoach": "coach@simmsgroupconsulting.com",
+    "sivuno": "https://sivuno.com"
+  }
+}
