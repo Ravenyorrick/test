@@ -1,0 +1,10 @@
+node_modules
+dist
+!dist/cpanel-upload.zip
+cpanel-upload
+.env
+.DS_Store
+*.log
+audit-raw
+tmp
+.vite

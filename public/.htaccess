@@ -1,0 +1,46 @@
+# Apache configuration for SPA routing on cPanel / shared hosting
+# Place this file in public_html (included automatically in cpanel-upload)
+
+<IfModule mod_rewrite.c>
+  RewriteEngine On
+  RewriteBase /
+
+  # Always leave real files alone (js, css, images, etc.)
+  RewriteCond %{REQUEST_FILENAME} -f
+  RewriteRule ^ - [L]
+
+  # Leave real directories alone (so other folders in public_html work)
+  RewriteCond %{REQUEST_FILENAME} -d
+  RewriteRule ^ - [L]
+
+  # If the first URL segment is an existing folder in public_html,
+  # do NOT send it to the React app (e.g. /my-other-site/..., /blog/..., /cgi-bin/...)
+  RewriteCond %{REQUEST_URI} ^/([^/]+)
+  RewriteCond %{DOCUMENT_ROOT}/%1 -d
+  RewriteRule ^ - [L]
+
+  # Common cPanel / system paths — never rewrite to the SPA
+  RewriteRule ^(cgi-bin|mail|\.well-known)($|/) - [L]
+
+  # Everything else → React Router (index.html)
+  RewriteRule ^ index.html [L]
+</IfModule>
+
+# Optional: ensure correct MIME types
+<IfModule mod_mime.c>
+  AddType text/css .css
+  AddType application/javascript .js
+  AddType image/svg+xml .svg
+  AddType image/webp .webp
+</IfModule>
+
+# Cache static assets
+<IfModule mod_expires.c>
+  ExpiresActive On
+  ExpiresByType text/css "access plus 7 days"
+  ExpiresByType application/javascript "access plus 7 days"
+  ExpiresByType image/jpeg "access plus 30 days"
+  ExpiresByType image/png "access plus 30 days"
+  ExpiresByType image/webp "access plus 30 days"
+  ExpiresByType image/x-icon "access plus 30 days"
+</IfModule>
