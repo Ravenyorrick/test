@@ -18,3 +18,15 @@
 - No Node.js is required on the server.
 - Contact actions use mailto links (same as the original Wix site).
 - If deep links 404 after refresh, ensure Apache `mod_rewrite` is enabled (standard on cPanel) and `.htaccess` was uploaded.
+
+## Other folders in `public_html`
+
+You can create other folders next to this site (for example `public_html/blog` or `public_html/staging`).
+
+The included `.htaccess` is set up so:
+
+- Real folders and files are **not** rewritten into the React app
+- Visiting `/your-folder/` uses that folder instead of showing the site 404 page
+
+Put an `index.html` (or other site files) inside the new folder.  
+If the folder is empty, the browser may still show a server error — that is normal until you add files.

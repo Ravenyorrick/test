@@ -5,12 +5,24 @@
   RewriteEngine On
   RewriteBase /
 
-  # Don't rewrite files or directories that exist
-  RewriteCond %{REQUEST_FILENAME} -f [OR]
+  # Always leave real files alone (js, css, images, etc.)
+  RewriteCond %{REQUEST_FILENAME} -f
+  RewriteRule ^ - [L]
+
+  # Leave real directories alone (so other folders in public_html work)
   RewriteCond %{REQUEST_FILENAME} -d
   RewriteRule ^ - [L]
 
-  # Route everything else to index.html for React Router
+  # If the first URL segment is an existing folder in public_html,
+  # do NOT send it to the React app (e.g. /my-other-site/..., /blog/..., /cgi-bin/...)
+  RewriteCond %{REQUEST_URI} ^/([^/]+)
+  RewriteCond %{DOCUMENT_ROOT}/%1 -d
+  RewriteRule ^ - [L]
+
+  # Common cPanel / system paths — never rewrite to the SPA
+  RewriteRule ^(cgi-bin|mail|\.well-known)($|/) - [L]
+
+  # Everything else → React Router (index.html)
   RewriteRule ^ index.html [L]
 </IfModule>
 
