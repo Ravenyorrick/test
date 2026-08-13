@@ -1,0 +1,79 @@
+# Innovet Electric Inc. — Apache .htaccess for cPanel shared hosting
+# Enables clean URLs without requiring Node/Vite/React
+
+Options -Indexes
+ServerSignature Off
+
+<IfModule mod_rewrite.c>
+  RewriteEngine On
+
+  # If installed in a subdirectory, set RewriteBase accordingly, e.g.:
+  # RewriteBase /subdirectory/
+  RewriteBase /
+
+  # Dynamic sitemap/robots with correct domain
+  RewriteRule ^sitemap\.xml$ sitemap.php [L]
+  RewriteRule ^robots\.txt$ robots.php [L]
+
+  # Force HTTPS when SSL is available (safe: only if HTTPS already negotiated by host)
+  # Uncomment the next 2 lines after SSL is enabled in cPanel:
+  # RewriteCond %{HTTPS} !=on
+  # RewriteRule ^ https://%{HTTP_HOST}%{REQUEST_URI} [L,R=301]
+
+  # Serve existing files and directories as-is
+  RewriteCond %{REQUEST_FILENAME} -f [OR]
+  RewriteCond %{REQUEST_FILENAME} -d
+  RewriteRule ^ - [L]
+
+  # Map clean directory URLs to index.php inside that directory
+  RewriteCond %{REQUEST_FILENAME}/index.php -f
+  RewriteRule ^(.*)$ $1/index.php [L]
+
+  # Pretty aliases
+  RewriteRule ^our-story/?$ /about/ [L,R=301]
+  RewriteRule ^portfolio/?$ /gallery/ [L,R=301]
+  RewriteRule ^service-locations/?$ /areas-we-serve/ [L,R=301]
+  RewriteRule ^electrical-service-repair/?$ /services/electrical-services/ [L,R=301]
+  RewriteRule ^security-cameras/?$ /services/security-camera-services/ [L,R=301]
+  RewriteRule ^pool-hot-tub-electrical/?$ /services/swimming-pool-electrician/ [L,R=301]
+  RewriteRule ^commercial-electrical/?$ /services/commercial-electrical-services/ [L,R=301]
+  RewriteRule ^generators/?$ /services/generator-services/ [L,R=301]
+  RewriteRule ^privacy/?$ /privacy-policy/ [L,R=301]
+
+  # Fallback 404
+  RewriteRule ^ - [L]
+</IfModule>
+
+# Custom error document
+ErrorDocument 404 /404.php
+
+<IfModule mod_headers.c>
+  Header set X-Content-Type-Options "nosniff"
+  Header set X-Frame-Options "SAMEORIGIN"
+  Header set Referrer-Policy "strict-origin-when-cross-origin"
+  Header set Permissions-Policy "geolocation=(), microphone=(), camera=()"
+</IfModule>
+
+# Cache static assets
+<IfModule mod_expires.c>
+  ExpiresActive On
+  ExpiresByType text/css "access plus 7 days"
+  ExpiresByType application/javascript "access plus 7 days"
+  ExpiresByType image/webp "access plus 30 days"
+  ExpiresByType image/jpeg "access plus 30 days"
+  ExpiresByType image/png "access plus 30 days"
+  ExpiresByType image/svg+xml "access plus 30 days"
+  ExpiresByType font/woff2 "access plus 30 days"
+</IfModule>
+
+# Protect sensitive files
+<FilesMatch "(^\.env|config\.php\.bak|composer\.(json|lock)|package(-lock)?\.json)$">
+  <IfModule mod_authz_core.c>
+    Require all denied
+  </IfModule>
+</FilesMatch>
+
+# Block direct access to form logs if present
+<IfModule mod_rewrite.c>
+  RewriteRule ^forms/logs/ - [F,L]
+</IfModule>

@@ -1,0 +1,2 @@
+# Deny web access to form logs
+Deny from all
