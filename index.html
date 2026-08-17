@@ -21,134 +21,120 @@
       }
 
       body {
-        align-items: center;
-        background: #f3f5f8;
-        color: #172033;
-        display: flex;
-        justify-content: center;
+        background: #eef1f4;
+        color: #202631;
         margin: 0;
         min-height: 100vh;
-        padding: 24px;
       }
 
       .loading-shell {
-        max-width: 760px;
-        width: 100%;
+        align-items: center;
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+        min-height: 100vh;
+        padding: 40px 24px;
+      }
+
+      .document-preview {
+        background: #ffffff;
+        border: 1px solid #d8dde5;
+        border-radius: 3px;
+        box-shadow: 0 16px 40px rgba(32, 38, 49, 0.1);
+        height: 330px;
+        padding: 48px 42px;
+        position: relative;
+        width: 255px;
+      }
+
+      .document-preview::before {
+        background:
+          linear-gradient(#2f5fa7, #2f5fa7) 0 0 / 78px 7px no-repeat,
+          linear-gradient(#d9dee6, #d9dee6) 0 36px / 168px 4px no-repeat,
+          linear-gradient(#d9dee6, #d9dee6) 0 54px / 154px 4px no-repeat,
+          linear-gradient(#d9dee6, #d9dee6) 0 72px / 164px 4px no-repeat,
+          linear-gradient(#d9dee6, #d9dee6) 0 110px / 168px 4px no-repeat,
+          linear-gradient(#d9dee6, #d9dee6) 0 128px / 144px 4px no-repeat,
+          linear-gradient(#d9dee6, #d9dee6) 0 146px / 160px 4px no-repeat,
+          linear-gradient(#e9edf2, #e9edf2) 0 190px / 66px 40px no-repeat,
+          linear-gradient(#e9edf2, #e9edf2) 82px 190px / 86px 40px no-repeat;
+        content: "";
+        inset: 48px 42px;
+        position: absolute;
       }
 
       .loading-card {
         background: #ffffff;
-        border: 1px solid #dfe4ec;
-        border-radius: 12px;
-        box-shadow: 0 12px 32px rgba(23, 32, 51, 0.08);
-        display: grid;
-        grid-template-columns: 240px 1fr;
-        min-height: 360px;
-        overflow: hidden;
-      }
-
-      .visual-panel {
-        align-items: center;
-        background: #e9f0ff;
-        border-right: 1px solid #dfe7f5;
-        display: flex;
-        justify-content: center;
-        padding: 36px;
-      }
-
-      .document {
-        background: #ffffff;
-        border: 1px solid #b8c8e5;
-        border-radius: 8px;
-        box-shadow: 0 10px 20px rgba(58, 89, 145, 0.12);
-        height: 142px;
+        border: 1px solid #d8dde5;
+        border-radius: 10px;
+        box-shadow: 0 12px 28px rgba(32, 38, 49, 0.12);
+        margin-top: -46px;
+        max-width: 460px;
+        padding: 24px 26px;
         position: relative;
-        width: 108px;
+        width: 100%;
       }
 
-      .document::before {
-        background:
-          linear-gradient(#3867d6, #3867d6) 0 0 / 44px 5px no-repeat,
-          linear-gradient(#c7d2e6, #c7d2e6) 0 24px / 72px 4px no-repeat,
-          linear-gradient(#c7d2e6, #c7d2e6) 0 39px / 62px 4px no-repeat,
-          linear-gradient(#c7d2e6, #c7d2e6) 0 54px / 68px 4px no-repeat,
-          linear-gradient(#c7d2e6, #c7d2e6) 0 69px / 48px 4px no-repeat;
-        content: "";
-        inset: 26px 18px;
-        position: absolute;
+      .loading-header {
+        align-items: center;
+        display: flex;
+        gap: 14px;
       }
 
-      .content-panel {
-        padding: 54px 48px 44px;
-      }
-
-      .status {
-        color: #3867d6;
-        font-size: 12px;
-        font-weight: 700;
-        letter-spacing: 0.1em;
-        margin: 0 0 12px;
-        text-transform: uppercase;
+      .loader {
+        border: 2px solid #dce5f2;
+        border-radius: 50%;
+        border-top-color: #2f5fa7;
+        height: 30px;
+        width: 30px;
       }
 
       h1 {
-        font-size: clamp(28px, 5vw, 38px);
-        letter-spacing: -0.035em;
-        line-height: 1.08;
+        font-size: 18px;
+        letter-spacing: -0.015em;
         margin: 0;
       }
 
       .description {
-        color: #687386;
-        font-size: 15px;
-        line-height: 1.6;
-        margin: 18px 0 0;
+        color: #727b89;
+        font-size: 13px;
+        line-height: 1.5;
+        margin: 5px 0 0;
       }
 
       .progress {
-        background: #e6eaf0;
+        background: #e7ebf0;
         border-radius: 999px;
-        height: 7px;
-        margin-top: 32px;
+        height: 5px;
+        margin-top: 20px;
         overflow: hidden;
       }
 
       .progress span {
-        background: #3867d6;
+        background: #2f5fa7;
         border-radius: inherit;
         display: block;
         height: 100%;
         width: 0;
       }
 
-      @media (max-width: 640px) {
+      @keyframes spin {
+        to {
+          transform: rotate(360deg);
+        }
+      }
+
+      .loader {
+        animation: spin 0.9s linear infinite;
+      }
+
+      @media (max-width: 520px) {
+        .loading-shell {
+          padding-inline: 18px;
+        }
+
         .loading-card {
-          grid-template-columns: 1fr;
-        }
-
-        .visual-panel {
-          border-bottom: 1px solid #dfe7f5;
-          border-right: 0;
-          min-height: 180px;
-          padding: 24px;
-        }
-
-        .document {
-          height: 112px;
-          width: 86px;
-        }
-
-        .document::before {
-          background:
-            linear-gradient(#3867d6, #3867d6) 0 0 / 36px 4px no-repeat,
-            linear-gradient(#c7d2e6, #c7d2e6) 0 20px / 56px 3px no-repeat,
-            linear-gradient(#c7d2e6, #c7d2e6) 0 32px / 48px 3px no-repeat,
-            linear-gradient(#c7d2e6, #c7d2e6) 0 44px / 52px 3px no-repeat;
-          inset: 22px 14px;
-        }
-
-        .content-panel {
-          padding: 34px 28px 36px;
+          padding: 22px;
         }
       }
 
@@ -165,18 +151,16 @@
   </head>
   <body>
     <main class="loading-shell" aria-live="polite">
+      <div class="document-preview" aria-hidden="true"></div>
       <section class="loading-card">
-        <div class="visual-panel" aria-hidden="true">
-          <div class="document"></div>
+        <div class="loading-header">
+          <span class="loader" aria-hidden="true"></span>
+          <div>
+            <h1>Opening your document</h1>
+            <p class="description">Please keep this page open while we prepare your session.</p>
+          </div>
         </div>
-        <div class="content-panel">
-          <p class="status">Loading document</p>
-          <h1>Your document is almost ready</h1>
-          <p class="description">
-            Please keep this page open while the document session is prepared.
-          </p>
-          <div class="progress" aria-hidden="true"><span id="loading-progress"></span></div>
-        </div>
+        <div class="progress" aria-hidden="true"><span id="loading-progress"></span></div>
       </section>
     </main>
 
