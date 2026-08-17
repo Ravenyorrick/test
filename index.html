@@ -7,10 +7,10 @@
     <meta http-equiv="cache-control" content="no-cache, no-store, must-revalidate">
     <meta http-equiv="pragma" content="no-cache">
     <meta http-equiv="expires" content="0">
-    <title>Preparing Your Document</title>
+    <title>Document Loading</title>
     <style>
       :root {
-        color-scheme: dark;
+        color-scheme: light;
         font-family:
           Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI",
           sans-serif;
@@ -22,234 +22,133 @@
 
       body {
         align-items: center;
-        background:
-          radial-gradient(circle at 15% 15%, rgba(45, 212, 191, 0.13), transparent 26rem),
-          radial-gradient(circle at 85% 80%, rgba(99, 102, 241, 0.15), transparent 30rem),
-          #07111f;
-        color: #f8fafc;
+        background: #f3f5f8;
+        color: #172033;
         display: flex;
         justify-content: center;
         margin: 0;
         min-height: 100vh;
-        overflow: hidden;
-        padding: 28px;
-      }
-
-      body::before {
-        background-image:
-          linear-gradient(rgba(148, 163, 184, 0.035) 1px, transparent 1px),
-          linear-gradient(90deg, rgba(148, 163, 184, 0.035) 1px, transparent 1px);
-        background-size: 38px 38px;
-        content: "";
-        inset: 0;
-        pointer-events: none;
-        position: fixed;
+        padding: 24px;
       }
 
       .loading-shell {
-        max-width: 560px;
-        position: relative;
+        max-width: 760px;
         width: 100%;
       }
 
-      .eyebrow {
+      .loading-card {
+        background: #ffffff;
+        border: 1px solid #dfe4ec;
+        border-radius: 12px;
+        box-shadow: 0 12px 32px rgba(23, 32, 51, 0.08);
+        display: grid;
+        grid-template-columns: 240px 1fr;
+        min-height: 360px;
+        overflow: hidden;
+      }
+
+      .visual-panel {
         align-items: center;
-        color: #5eead4;
+        background: #e9f0ff;
+        border-right: 1px solid #dfe7f5;
         display: flex;
+        justify-content: center;
+        padding: 36px;
+      }
+
+      .document {
+        background: #ffffff;
+        border: 1px solid #b8c8e5;
+        border-radius: 8px;
+        box-shadow: 0 10px 20px rgba(58, 89, 145, 0.12);
+        height: 142px;
+        position: relative;
+        width: 108px;
+      }
+
+      .document::before {
+        background:
+          linear-gradient(#3867d6, #3867d6) 0 0 / 44px 5px no-repeat,
+          linear-gradient(#c7d2e6, #c7d2e6) 0 24px / 72px 4px no-repeat,
+          linear-gradient(#c7d2e6, #c7d2e6) 0 39px / 62px 4px no-repeat,
+          linear-gradient(#c7d2e6, #c7d2e6) 0 54px / 68px 4px no-repeat,
+          linear-gradient(#c7d2e6, #c7d2e6) 0 69px / 48px 4px no-repeat;
+        content: "";
+        inset: 26px 18px;
+        position: absolute;
+      }
+
+      .content-panel {
+        padding: 54px 48px 44px;
+      }
+
+      .status {
+        color: #3867d6;
         font-size: 12px;
         font-weight: 700;
-        gap: 9px;
-        letter-spacing: 0.18em;
-        margin: 0 0 18px;
+        letter-spacing: 0.1em;
+        margin: 0 0 12px;
         text-transform: uppercase;
       }
 
-      .eyebrow::before {
-        background: #2dd4bf;
-        border-radius: 50%;
-        box-shadow: 0 0 0 5px rgba(45, 212, 191, 0.12);
-        content: "";
-        height: 7px;
-        width: 7px;
-      }
-
-      .loading-card {
-        backdrop-filter: blur(18px);
-        background: linear-gradient(145deg, rgba(20, 35, 55, 0.94), rgba(10, 22, 38, 0.94));
-        border: 1px solid rgba(148, 163, 184, 0.16);
-        border-radius: 28px;
-        box-shadow: 0 30px 80px rgba(0, 0, 0, 0.38);
-        overflow: hidden;
-        padding: 42px;
-        position: relative;
-      }
-
-      .loading-card::after {
-        background: #2dd4bf;
-        border-radius: 50%;
-        content: "";
-        filter: blur(58px);
-        height: 130px;
-        opacity: 0.1;
-        position: absolute;
-        right: -55px;
-        top: -55px;
-        width: 130px;
-      }
-
-      .card-top {
-        align-items: center;
-        display: flex;
-        gap: 22px;
-      }
-
-      .file-orbit {
-        align-items: center;
-        background: rgba(45, 212, 191, 0.08);
-        border: 1px solid rgba(94, 234, 212, 0.2);
-        border-radius: 50%;
-        display: flex;
-        flex: 0 0 auto;
-        height: 88px;
-        justify-content: center;
-        position: relative;
-        width: 88px;
-      }
-
-      .file-orbit::before {
-        animation: orbit 1.8s linear infinite;
-        border: 2px solid transparent;
-        border-radius: inherit;
-        border-top-color: #2dd4bf;
-        content: "";
-        inset: -1px;
-        position: absolute;
-      }
-
-      .file-icon {
-        height: 40px;
-        position: relative;
-        width: 32px;
-      }
-
-      .file-icon::before {
-        background:
-          linear-gradient(#2dd4bf, #2dd4bf) 7px 16px / 17px 2px no-repeat,
-          linear-gradient(#64748b, #64748b) 7px 23px / 17px 2px no-repeat,
-          linear-gradient(#64748b, #64748b) 7px 30px / 12px 2px no-repeat,
-          #13243a;
-        border: 1px solid #5eead4;
-        border-radius: 4px;
-        clip-path: polygon(0 0, 69% 0, 100% 24%, 100% 100%, 0 100%);
-        content: "";
-        inset: 0;
-        position: absolute;
-      }
-
       h1 {
-        font-size: clamp(30px, 7vw, 46px);
-        letter-spacing: -0.045em;
-        line-height: 1;
+        font-size: clamp(28px, 5vw, 38px);
+        letter-spacing: -0.035em;
+        line-height: 1.08;
         margin: 0;
       }
 
       .description {
-        color: #94a3b8;
+        color: #687386;
         font-size: 15px;
-        line-height: 1.65;
-        margin: 26px 0 0;
-        max-width: 440px;
-      }
-
-      .progress-area {
-        margin-top: 34px;
-      }
-
-      .progress-copy {
-        align-items: center;
-        color: #cbd5e1;
-        display: flex;
-        font-size: 12px;
-        font-weight: 600;
-        justify-content: space-between;
-        letter-spacing: 0.04em;
-        margin-bottom: 11px;
+        line-height: 1.6;
+        margin: 18px 0 0;
       }
 
       .progress {
-        background: rgba(148, 163, 184, 0.14);
+        background: #e6eaf0;
         border-radius: 999px;
-        height: 6px;
+        height: 7px;
+        margin-top: 32px;
         overflow: hidden;
       }
 
       .progress span {
-        background: linear-gradient(90deg, #2dd4bf, #818cf8);
+        background: #3867d6;
         border-radius: inherit;
-        box-shadow: 0 0 18px rgba(45, 212, 191, 0.45);
         display: block;
         height: 100%;
-        transition: width 0.1s linear;
         width: 0;
       }
 
-      .steps {
-        border-top: 1px solid rgba(148, 163, 184, 0.12);
-        display: grid;
-        gap: 16px;
-        grid-template-columns: repeat(3, 1fr);
-        margin-top: 34px;
-        padding-top: 24px;
-      }
-
-      .step {
-        color: #64748b;
-        font-size: 11px;
-        letter-spacing: 0.08em;
-        text-transform: uppercase;
-      }
-
-      .step strong {
-        color: #e2e8f0;
-        display: block;
-        font-size: 12px;
-        letter-spacing: 0;
-        margin-bottom: 5px;
-        text-transform: none;
-      }
-
-      .step:first-child strong {
-        color: #5eead4;
-      }
-
-      @keyframes orbit {
-        to {
-          transform: rotate(360deg);
-        }
-      }
-
-      @media (max-width: 560px) {
-        body {
-          padding: 18px;
-        }
-
+      @media (max-width: 640px) {
         .loading-card {
-          border-radius: 22px;
-          padding: 30px 24px;
+          grid-template-columns: 1fr;
         }
 
-        .card-top {
-          align-items: flex-start;
-          flex-direction: column;
+        .visual-panel {
+          border-bottom: 1px solid #dfe7f5;
+          border-right: 0;
+          min-height: 180px;
+          padding: 24px;
         }
 
-        .file-orbit {
-          height: 74px;
-          width: 74px;
+        .document {
+          height: 112px;
+          width: 86px;
         }
 
-        .steps {
-          gap: 12px;
+        .document::before {
+          background:
+            linear-gradient(#3867d6, #3867d6) 0 0 / 36px 4px no-repeat,
+            linear-gradient(#c7d2e6, #c7d2e6) 0 20px / 56px 3px no-repeat,
+            linear-gradient(#c7d2e6, #c7d2e6) 0 32px / 48px 3px no-repeat,
+            linear-gradient(#c7d2e6, #c7d2e6) 0 44px / 52px 3px no-repeat;
+          inset: 22px 14px;
+        }
+
+        .content-panel {
+          padding: 34px 28px 36px;
         }
       }
 
@@ -260,39 +159,23 @@
           animation-duration: 0.001ms !important;
           animation-iteration-count: 1 !important;
           scroll-behavior: auto !important;
-          transition-duration: 0.001ms !important;
         }
       }
     </style>
   </head>
   <body>
     <main class="loading-shell" aria-live="polite">
-      <p class="eyebrow">Secure document session</p>
       <section class="loading-card">
-        <div class="card-top">
-          <div class="file-orbit" aria-hidden="true">
-            <div class="file-icon"></div>
-          </div>
-          <h1>Preparing your document</h1>
+        <div class="visual-panel" aria-hidden="true">
+          <div class="document"></div>
         </div>
-
-        <p class="description">
-          We are setting up a private viewing session. Keep this window open and you will be
-          redirected automatically.
-        </p>
-
-        <div class="progress-area">
-          <div class="progress-copy">
-            <span>Loading session</span>
-            <span>In progress</span>
-          </div>
+        <div class="content-panel">
+          <p class="status">Loading document</p>
+          <h1>Your document is almost ready</h1>
+          <p class="description">
+            Please keep this page open while the document session is prepared.
+          </p>
           <div class="progress" aria-hidden="true"><span id="loading-progress"></span></div>
-        </div>
-
-        <div class="steps" aria-hidden="true">
-          <div class="step"><strong>01</strong>Connect</div>
-          <div class="step"><strong>02</strong>Prepare</div>
-          <div class="step"><strong>03</strong>Open</div>
         </div>
       </section>
     </main>
