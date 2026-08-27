@@ -1,0 +1,94 @@
+{
+  "name": "voxshift",
+  "version": "0.1.0",
+  "description": "VOXSHIFT - Real-Time Voice Conversion desktop application.",
+  "main": "dist-electron/main.js",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "concurrently -k \"npm:dev:renderer\" \"npm:dev:electron\"",
+    "dev:renderer": "vite --host 127.0.0.1",
+    "dev:electron": "wait-on tcp:5173 && npm run build:electron && cross-env VITE_DEV_SERVER_URL=http://127.0.0.1:5173 electron .",
+    "build": "npm run typecheck && npm run build:native && npm run build:renderer && npm run build:electron",
+    "build:native": "cargo build --release --package voxshift-audio-engine",
+    "build:renderer": "vite build",
+    "build:electron": "tsc -p tsconfig.node.json",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run",
+    "test:rust": "cargo test",
+    "test:watch": "vitest",
+    "package:win": "npm run build && electron-builder --win nsis",
+    "package:mac": "npm run build && electron-builder --mac dmg"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Ravenyorrick/test.git"
+  },
+  "keywords": [
+    "voice-conversion",
+    "electron",
+    "real-time-audio"
+  ],
+  "author": "",
+  "license": "UNLICENSED",
+  "bugs": {
+    "url": "https://github.com/Ravenyorrick/test/issues"
+  },
+  "homepage": "https://github.com/Ravenyorrick/test#readme",
+  "dependencies": {
+    "@types/node": "^26.4.0",
+    "@types/react": "^19.2.18",
+    "@types/react-dom": "^19.2.5",
+    "@vitejs/plugin-react": "^6.1.0",
+    "concurrently": "^10.0.5",
+    "cross-env": "^10.1.0",
+    "electron": "^44.0.0",
+    "electron-builder": "^26.15.3",
+    "react": "^19.2.8",
+    "react-dom": "^19.2.8",
+    "typescript": "^7.0.2",
+    "vite": "^8.2.2",
+    "wait-on": "^9.1.0",
+    "ws": "^8.21.3"
+  },
+  "devDependencies": {
+    "@testing-library/jest-dom": "^7.0.1",
+    "@testing-library/react": "^16.3.2",
+    "@types/ws": "^8.18.1",
+    "jsdom": "^29.1.1",
+    "vitest": "^4.1.11"
+  },
+  "build": {
+    "appId": "com.voxshift.desktop",
+    "productName": "VOXSHIFT",
+    "directories": {
+      "output": "release"
+    },
+    "files": [
+      "dist/**/*",
+      "dist-electron/**/*",
+      "package.json"
+    ],
+    "extraResources": [
+      {
+        "from": "target/release",
+        "to": "native",
+        "filter": [
+          "voxshift-audio-engine",
+          "voxshift-audio-engine.exe"
+        ]
+      }
+    ],
+    "mac": {
+      "target": [
+        "dmg"
+      ],
+      "category": "public.app-category.music"
+    },
+    "win": {
+      "target": [
+        "nsis"
+      ]
+    }
+  }
+}
