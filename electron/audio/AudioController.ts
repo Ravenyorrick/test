@@ -1,3 +1,6 @@
+import type { ChildProcessWithoutNullStreams } from "node:child_process";
+import type { NativeAudioBridge, NativeCaptureWorkerMetrics } from "./NativeAudioBridge.js";
+
 export type AudioPipelineState =
   | "STOPPED"
   | "INITIALIZING"
@@ -65,6 +68,8 @@ const initialMetrics: AudioMetrics = {
 };
 
 export class AudioController {
+  constructor(private readonly nativeAudioBridge: NativeAudioBridge | null = null) {}
+
   private status: AudioStatus = {
     state: "STOPPED",
     live: false,
@@ -77,6 +82,7 @@ export class AudioController {
   };
 
   private metrics: AudioMetrics = { ...initialMetrics };
+  private captureWorker: ChildProcessWithoutNullStreams | null = null;
   private processingMode: ProcessingMode = "BALANCED";
   private noiseSuppressionEnabled = true;
   private readonly statusListeners = new Set<StatusListener>();
@@ -101,7 +107,7 @@ export class AudioController {
     return this.result(false, "Native engine bridge is not installed yet.");
   }
 
-  start(): AudioCommandResult {
+  async start(): Promise<AudioCommandResult> {
     this.updateStatus({
       state: "INITIALIZING",
       live: false,
@@ -109,9 +115,60 @@ export class AudioController {
       message: "Validating microphone, voice engine, and virtual microphone."
     });
 
-    const missingPrerequisite = this.findMissingStartPrerequisite();
+    if (!this.status.inputDeviceId) {
+      this.updateStatus({
+        state: "DEVICE_ERROR",
+        live: false,
+        muted: true,
+        message: "No physical microphone has been selected by the backend controller."
+      });
+
+      return this.result(false, "No physical microphone has been selected by the backend controller.");
+    }
+
+    if (!this.nativeAudioBridge) {
+      this.updateStatus({
+        state: "DEVICE_ERROR",
+        live: false,
+        muted: true,
+        message: "Native capture bridge is not available."
+      });
+
+      return this.result(false, "Native capture bridge is not available.");
+    }
+
+    try {
+      this.captureWorker = await this.nativeAudioBridge.startCaptureWorker(
+        this.status.inputDeviceId,
+        (metrics) => this.applyCaptureWorkerMetrics(metrics),
+        (error) => {
+          this.nativeAudioBridge?.stopCaptureWorker(this.captureWorker);
+          this.captureWorker = null;
+          this.updateStatus({
+            state: "DEVICE_ERROR",
+            live: false,
+            muted: true,
+            message: error.message
+          });
+        }
+      );
+    } catch (error) {
+      const message = error instanceof Error ? error.message : "Native capture worker failed to start.";
+      this.updateStatus({
+        state: "DEVICE_ERROR",
+        live: false,
+        muted: true,
+        message
+      });
+
+      return this.result(false, message);
+    }
+
+    const missingPrerequisite = this.findMissingNonCaptureStartPrerequisite();
 
     if (missingPrerequisite) {
+      this.nativeAudioBridge.stopCaptureWorker(this.captureWorker);
+      this.captureWorker = null;
       this.updateStatus({
         state: missingPrerequisite.state,
         live: false,
@@ -133,6 +190,8 @@ export class AudioController {
   }
 
   stop(): AudioCommandResult {
+    this.nativeAudioBridge?.stopCaptureWorker(this.captureWorker);
+    this.captureWorker = null;
     this.metrics = { ...initialMetrics };
     this.updateStatus({
       state: "STOPPED",
@@ -282,8 +341,35 @@ export class AudioController {
     return this.stop();
   }
 
-  test(): AudioCommandResult {
-    return this.result(false, "Audio test requires native capture, voice conversion, and virtual microphone support.");
+  async test(): Promise<AudioCommandResult> {
+    if (!this.status.inputDeviceId) {
+      return this.result(false, "No physical microphone has been selected for native capture test.");
+    }
+
+    if (!this.nativeAudioBridge) {
+      return this.result(false, "Native capture bridge is not available.");
+    }
+
+    try {
+      const report = await this.nativeAudioBridge.runCaptureTest(this.status.inputDeviceId, 1_000);
+      this.metrics = {
+        ...this.metrics,
+        inputLevel: Math.round(report.peak * 100),
+        droppedFrames: report.dropped_frames
+      };
+
+      return this.result(true);
+    } catch (error) {
+      const message = error instanceof Error ? error.message : "Native capture test failed.";
+      this.updateStatus({
+        state: "DEVICE_ERROR",
+        live: false,
+        muted: true,
+        message
+      });
+
+      return this.result(false, message);
+    }
   }
 
   getRuntimeConfiguration() {
@@ -316,6 +402,33 @@ export class AudioController {
     }
 
     return null;
+  }
+
+  private findMissingNonCaptureStartPrerequisite(): { state: AudioPipelineState; message: string } | null {
+    if (!this.status.voiceId) {
+      return {
+        state: "VOICE_ERROR",
+        message: "Native capture started, but no installed real-time voice model has been loaded. Capture was stopped."
+      };
+    }
+
+    if (!this.status.virtualMicrophoneReady) {
+      return {
+        state: "DRIVER_ERROR",
+        message: "Native capture started, but VOXSHIFT Virtual Microphone is not installed or running. Capture was stopped."
+      };
+    }
+
+    return null;
+  }
+
+  private applyCaptureWorkerMetrics(workerMetrics: NativeCaptureWorkerMetrics) {
+    this.metrics = {
+      ...this.metrics,
+      inputLevel: Math.round(workerMetrics.peak * 100),
+      droppedFrames: workerMetrics.dropped_frames,
+      underruns: workerMetrics.device_errors
+    };
   }
 
   private result(ok: boolean, error?: string): AudioCommandResult {

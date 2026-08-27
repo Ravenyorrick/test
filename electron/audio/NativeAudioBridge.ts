@@ -1,4 +1,5 @@
-import { execFile } from "node:child_process";
+import { ChildProcessWithoutNullStreams, execFile, spawn } from "node:child_process";
+import readline from "node:readline";
 import fs from "node:fs";
 import path from "node:path";
 import { promisify } from "node:util";
@@ -11,6 +12,29 @@ export type NativeAudioDeviceInfo = {
   input_channels: number;
   preferred_sample_rate_hz: number;
 };
+
+export type NativeCaptureTestReport = {
+  device_id: string;
+  duration_ms: number;
+  rms: number;
+  peak: number;
+  frames_captured: number;
+  dropped_frames: number;
+  speech_detected: boolean;
+};
+
+export type NativeCaptureWorkerMetrics = {
+  rms: number;
+  peak: number;
+  frames_captured: number;
+  dropped_frames: number;
+  device_errors: number;
+};
+
+type NativeWorkerEvent =
+  | { type: "started"; device_id: string }
+  | ({ type: "metrics" } & NativeCaptureWorkerMetrics)
+  | { type: "error"; error: string };
 
 type NativeOkResponse<T> = {
   status: "ok";
@@ -28,6 +52,85 @@ export class NativeAudioBridge {
   async enumerateDevices(): Promise<NativeAudioDeviceInfo[]> {
     const response = await this.runNativeCommand<NativeAudioDeviceInfo[]>(["enumerate-devices"]);
     return response;
+  }
+
+  async runCaptureTest(deviceId: string, durationMs = 1_000): Promise<NativeCaptureTestReport> {
+    return this.runNativeCommand<NativeCaptureTestReport>([
+      "capture-test",
+      "--device",
+      deviceId,
+      "--duration-ms",
+      `${durationMs}`
+    ]);
+  }
+
+  async startCaptureWorker(
+    deviceId: string,
+    onMetrics: (metrics: NativeCaptureWorkerMetrics) => void,
+    onError: (error: Error) => void
+  ): Promise<ChildProcessWithoutNullStreams> {
+    const child = spawn(this.resolveExecutablePath(), ["capture-worker", "--device", deviceId], {
+      windowsHide: true
+    });
+    const lines = readline.createInterface({ input: child.stdout });
+
+    return new Promise((resolve, reject) => {
+      let started = false;
+
+      const fail = (error: Error) => {
+        if (!started) {
+          reject(error);
+          return;
+        }
+
+        onError(error);
+      };
+
+      lines.on("line", (line) => {
+        try {
+          const event = JSON.parse(line) as NativeWorkerEvent;
+
+          if (event.type === "started") {
+            started = true;
+            resolve(child);
+            return;
+          }
+
+          if (event.type === "metrics") {
+            onMetrics(event);
+            return;
+          }
+
+          fail(new Error(event.error));
+        } catch (error) {
+          fail(error instanceof Error ? error : new Error("Invalid native capture worker output."));
+        }
+      });
+
+      child.stderr.on("data", (chunk) => {
+        fail(new Error(String(chunk)));
+      });
+
+      child.on("error", fail);
+      child.on("exit", (code) => {
+        if (!started) {
+          reject(new Error(`Native capture worker exited before start with code ${code ?? "unknown"}.`));
+          return;
+        }
+
+        if (code !== 0 && code !== null) {
+          onError(new Error(`Native capture worker exited with code ${code}.`));
+        }
+      });
+    });
+  }
+
+  stopCaptureWorker(child: ChildProcessWithoutNullStreams | null) {
+    if (!child || child.killed) {
+      return;
+    }
+
+    child.kill();
   }
 
   private async runNativeCommand<T>(args: string[]): Promise<T> {

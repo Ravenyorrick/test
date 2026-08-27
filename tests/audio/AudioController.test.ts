@@ -1,11 +1,11 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import { AudioController } from "../../electron/audio/AudioController";
 
 describe("AudioController backend state machine", () => {
-  it("refuses to start without a selected physical microphone", () => {
+  it("refuses to start without a selected physical microphone", async () => {
     const controller = new AudioController();
 
-    const result = controller.start();
+    const result = await controller.start();
 
     expect(result.ok).toBe(false);
     expect(result.status.state).toBe("DEVICE_ERROR");
@@ -44,5 +44,29 @@ describe("AudioController backend state machine", () => {
     expect(result.ok).toBe(false);
     expect(result.status.state).toBe("DEVICE_ERROR");
     expect(result.status.inputDeviceId).toBeNull();
+  });
+
+  it("starts native capture before failing safely on missing voice model", async () => {
+    const captureWorker = { killed: false, kill: vi.fn() };
+    const nativeBridge = {
+      startCaptureWorker: vi.fn().mockResolvedValue(captureWorker),
+      stopCaptureWorker: vi.fn(),
+      runCaptureTest: vi.fn()
+    };
+    const controller = new AudioController(nativeBridge as never);
+
+    controller.setInputDevice("native-device-1");
+    const result = await controller.start();
+
+    expect(nativeBridge.startCaptureWorker).toHaveBeenCalledWith(
+      "native-device-1",
+      expect.any(Function),
+      expect.any(Function)
+    );
+    expect(nativeBridge.stopCaptureWorker).toHaveBeenCalledWith(captureWorker);
+    expect(result.ok).toBe(false);
+    expect(result.status.state).toBe("VOICE_ERROR");
+    expect(result.status.live).toBe(false);
+    expect(result.status.muted).toBe(true);
   });
 });

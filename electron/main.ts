@@ -8,9 +8,9 @@ import { ipcChannels } from "./ipc/channels.js";
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
-let mainWindow: BrowserWindow | null = null;
-const audioController = new AudioController();
 const nativeAudioBridge = new NativeAudioBridge();
+let mainWindow: BrowserWindow | null = null;
+const audioController = new AudioController(nativeAudioBridge);
 
 function createWindow() {
   mainWindow = new BrowserWindow({
