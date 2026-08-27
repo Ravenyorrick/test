@@ -14,10 +14,10 @@ describe("AudioController backend state machine", () => {
     expect(result.status.rawBypassBlocked).toBe(true);
   });
 
-  it("refuses to load a voice without an installed licensed model", () => {
+  it("refuses to load a voice without an installed licensed model", async () => {
     const controller = new AudioController();
 
-    const result = controller.setVoice("builtin-af-natural-01", false);
+    const result = await controller.setVoice("builtin-af-natural-01", false);
 
     expect(result.ok).toBe(false);
     expect(result.status.state).toBe("VOICE_ERROR");

@@ -211,6 +211,44 @@ pub struct NativeAudioCapture {
     running: Arc<AtomicBool>,
 }
 
+pub struct DevelopmentAudioSource {
+    sample_rate_hz: u32,
+    frame_samples: usize,
+    phase: f32,
+}
+
+impl DevelopmentAudioSource {
+    pub fn new(sample_rate_hz: u32, frame_samples: usize) -> Self {
+        Self {
+            sample_rate_hz,
+            frame_samples,
+            phase: 0.0,
+        }
+    }
+
+    pub fn label(&self) -> &'static str {
+        "DEVELOPMENT TEST INPUT"
+    }
+
+    pub fn next_frame(&mut self) -> AudioFrame {
+        let frequency_hz = 220.0_f32;
+        let phase_step = frequency_hz / self.sample_rate_hz as f32;
+        let mut samples = Vec::with_capacity(self.frame_samples);
+
+        for _ in 0..self.frame_samples {
+            let sample = (self.phase * std::f32::consts::TAU).sin() * 0.2;
+            samples.push(sample);
+            self.phase = (self.phase + phase_step) % 1.0;
+        }
+
+        AudioFrame {
+            samples,
+            sample_rate_hz: self.sample_rate_hz,
+            channels: 1,
+        }
+    }
+}
+
 impl Default for NativeAudioCapture {
     fn default() -> Self {
         Self::new()
@@ -715,5 +753,18 @@ mod tests {
         assert!(snapshot.rms > 0.39 && snapshot.rms < 0.4);
         assert_eq!(snapshot.peak, 0.5);
         assert_eq!(snapshot.frames_captured, 1);
+    }
+
+    #[test]
+    fn development_audio_source_is_labeled_and_produces_pcm() {
+        let mut source = DevelopmentAudioSource::new(48_000, 480);
+
+        let frame = source.next_frame();
+
+        assert_eq!(source.label(), "DEVELOPMENT TEST INPUT");
+        assert_eq!(frame.sample_rate_hz, 48_000);
+        assert_eq!(frame.channels, 1);
+        assert_eq!(frame.samples.len(), 480);
+        assert!(frame.peak_level() > 0.0);
     }
 }

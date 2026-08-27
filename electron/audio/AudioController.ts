@@ -1,5 +1,7 @@
 import type { ChildProcessWithoutNullStreams } from "node:child_process";
 import type { NativeAudioBridge, NativeCaptureWorkerMetrics } from "./NativeAudioBridge.js";
+import type { IVirtualMicrophone } from "../virtual-microphone/IVirtualMicrophone.js";
+import type { IVoiceConversionEngine } from "../voice/IVoiceConversionEngine.js";
 
 export type AudioPipelineState =
   | "STOPPED"
@@ -68,7 +70,11 @@ const initialMetrics: AudioMetrics = {
 };
 
 export class AudioController {
-  constructor(private readonly nativeAudioBridge: NativeAudioBridge | null = null) {}
+  constructor(
+    private readonly nativeAudioBridge: NativeAudioBridge | null = null,
+    private readonly voiceEngine: IVoiceConversionEngine | null = null,
+    private readonly virtualMicrophone: IVirtualMicrophone | null = null
+  ) {}
 
   private status: AudioStatus = {
     state: "STOPPED",
@@ -164,6 +170,7 @@ export class AudioController {
       return this.result(false, message);
     }
 
+    await this.refreshVirtualMicrophoneStatus();
     const missingPrerequisite = this.findMissingNonCaptureStartPrerequisite();
 
     if (missingPrerequisite) {
@@ -238,7 +245,7 @@ export class AudioController {
     return this.result(true);
   }
 
-  setVoice(voiceId: unknown, installed: unknown): AudioCommandResult {
+  async setVoice(voiceId: unknown, installed: unknown): Promise<AudioCommandResult> {
     if (typeof voiceId !== "string" || voiceId.trim().length === 0) {
       this.updateStatus({
         state: "VOICE_ERROR",
@@ -250,7 +257,7 @@ export class AudioController {
       return this.result(false, "Invalid voice identifier.");
     }
 
-    if (installed !== true) {
+    if (!this.voiceEngine && installed !== true) {
       this.updateStatus({
         state: "VOICE_ERROR",
         live: false,
@@ -259,6 +266,27 @@ export class AudioController {
       });
 
       return this.result(false, "Selected voice does not have an installed licensed real-time model.");
+    }
+
+    if (this.voiceEngine) {
+      try {
+        if (this.voiceEngine.getStatus() === "UNINITIALIZED") {
+          await this.voiceEngine.initialize();
+        }
+
+        await this.voiceEngine.loadVoice(voiceId);
+        await this.voiceEngine.warmup();
+      } catch (error) {
+        const message = error instanceof Error ? error.message : "Voice provider failed to load selected voice.";
+        this.updateStatus({
+          state: "VOICE_ERROR",
+          live: false,
+          muted: true,
+          message
+        });
+
+        return this.result(false, message);
+      }
     }
 
     this.updateStatus({
@@ -429,6 +457,20 @@ export class AudioController {
       droppedFrames: workerMetrics.dropped_frames,
       underruns: workerMetrics.device_errors
     };
+  }
+
+  async refreshVirtualMicrophoneStatus() {
+    if (!this.virtualMicrophone) {
+      this.updateStatus({
+        virtualMicrophoneReady: false
+      });
+      return;
+    }
+
+    const status = await this.virtualMicrophone.getStatus();
+    this.updateStatus({
+      virtualMicrophoneReady: status.osDetected
+    });
   }
 
   private result(ok: boolean, error?: string): AudioCommandResult {

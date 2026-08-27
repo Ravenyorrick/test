@@ -4,13 +4,25 @@ import { fileURLToPath } from "node:url";
 import { AudioController } from "./audio/AudioController.js";
 import { NativeAudioBridge } from "./audio/NativeAudioBridge.js";
 import { ipcChannels } from "./ipc/channels.js";
+import { MacVirtualMicrophone } from "./virtual-microphone/MacVirtualMicrophone.js";
+import { WindowsVirtualMicrophone } from "./virtual-microphone/WindowsVirtualMicrophone.js";
+import { ResembleLiveVoiceEngine } from "./voice/ResembleLiveVoiceEngine.js";
+import { loadResembleVoiceProviderConfig } from "./voice/VoiceProviderConfig.js";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
 const nativeAudioBridge = new NativeAudioBridge();
+const resembleConfig = loadResembleVoiceProviderConfig();
+const voiceEngine = resembleConfig ? new ResembleLiveVoiceEngine(resembleConfig) : null;
+const virtualMicrophone =
+  process.platform === "win32"
+    ? new WindowsVirtualMicrophone()
+    : process.platform === "darwin"
+      ? new MacVirtualMicrophone()
+      : null;
 let mainWindow: BrowserWindow | null = null;
-const audioController = new AudioController(nativeAudioBridge);
+const audioController = new AudioController(nativeAudioBridge, voiceEngine, virtualMicrophone);
 
 function createWindow() {
   mainWindow = new BrowserWindow({

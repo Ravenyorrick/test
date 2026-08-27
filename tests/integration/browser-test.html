@@ -1,0 +1,115 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>VOXSHIFT Browser Microphone Test</title>
+    <style>
+      body {
+        margin: 0;
+        padding: 32px;
+        background: #090b10;
+        color: #eff4fb;
+        font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      }
+
+      main {
+        max-width: 760px;
+      }
+
+      button,
+      select {
+        margin: 8px 0;
+        padding: 10px 12px;
+        border-radius: 10px;
+      }
+
+      meter {
+        width: 100%;
+        height: 24px;
+      }
+    </style>
+  </head>
+  <body>
+    <main>
+      <h1>VOXSHIFT Browser Microphone Test</h1>
+      <p>
+        This page uses real browser microphone APIs. It does not fake device visibility or animate the meter
+        artificially.
+      </p>
+      <button id="refresh" type="button">Refresh browser microphones</button>
+      <label>
+        Microphone
+        <select id="devices"></select>
+      </label>
+      <button id="start" type="button">Open selected microphone</button>
+      <p id="status">Not started.</p>
+      <meter id="meter" min="0" max="1" value="0"></meter>
+    </main>
+
+    <script>
+      const targetName = "VOXSHIFT Virtual Microphone";
+      const devicesSelect = document.querySelector("#devices");
+      const statusText = document.querySelector("#status");
+      const meter = document.querySelector("#meter");
+      let audioContext;
+      let animationFrame;
+      let stream;
+
+      async function refreshDevices() {
+        const devices = await navigator.mediaDevices.enumerateDevices();
+        const microphones = devices.filter((device) => device.kind === "audioinput");
+        devicesSelect.replaceChildren();
+
+        for (const device of microphones) {
+          const option = document.createElement("option");
+          option.value = device.deviceId;
+          option.textContent = device.label || `Microphone ${devicesSelect.length + 1}`;
+          devicesSelect.append(option);
+        }
+
+        const detected = microphones.some((device) => device.label === targetName);
+        statusText.textContent = detected
+          ? `${targetName} FOUND by browser.`
+          : `${targetName} NOT FOUND by browser.`;
+      }
+
+      async function startMeter() {
+        if (animationFrame) cancelAnimationFrame(animationFrame);
+        if (stream) stream.getTracks().forEach((track) => track.stop());
+
+        stream = await navigator.mediaDevices.getUserMedia({
+          audio: { deviceId: devicesSelect.value ? { exact: devicesSelect.value } : undefined },
+          video: false
+        });
+        audioContext = new AudioContext();
+        const source = audioContext.createMediaStreamSource(stream);
+        const analyser = audioContext.createAnalyser();
+        analyser.fftSize = 1024;
+        source.connect(analyser);
+        const samples = new Float32Array(analyser.fftSize);
+
+        function draw() {
+          analyser.getFloatTimeDomainData(samples);
+          const rms = Math.sqrt(samples.reduce((sum, sample) => sum + sample * sample, 0) / samples.length);
+          meter.value = rms;
+          animationFrame = requestAnimationFrame(draw);
+        }
+
+        statusText.textContent = "Browser stream opened. Meter shows actual selected microphone audio.";
+        draw();
+      }
+
+      document.querySelector("#refresh").addEventListener("click", refreshDevices);
+      document.querySelector("#start").addEventListener("click", () => {
+        startMeter().catch((error) => {
+          statusText.textContent = error.message;
+        });
+      });
+
+      refreshDevices().catch((error) => {
+        statusText.textContent = error.message;
+      });
+    </script>
+  </body>
+</html>
