@@ -28,7 +28,8 @@ describe("VOXSHIFT UI shell", () => {
 
     expect(screen.getByRole("heading", { name: "VOXSHIFT" })).toBeInTheDocument();
     expect(screen.getByText("No microphone selected")).toBeInTheDocument();
-    expect(screen.getByText("SAFETY MUTED")).toBeInTheDocument();
+    expect(screen.getByText("STOPPED")).toBeInTheDocument();
+    expect(screen.getByText("NOT READY")).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "MUTE" })).toBeInTheDocument();
     expect(screen.getByText("Not measured")).toBeInTheDocument();
   });

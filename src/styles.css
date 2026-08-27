@@ -194,6 +194,11 @@ input:focus-visible,
   box-shadow: 0 0 0 5px rgba(255, 184, 107, 0.12);
 }
 
+.status-dot--live {
+  background: #80f4ba;
+  box-shadow: 0 0 0 5px rgba(128, 244, 186, 0.14);
+}
+
 .shell {
   display: flex;
   flex-direction: column;
@@ -458,6 +463,16 @@ input:focus-visible,
   color: #9aa8ba;
   font-size: 0.76rem;
   text-transform: uppercase;
+}
+
+.engine-message {
+  margin: 0;
+  color: #c9d2df;
+  line-height: 1.5;
+}
+
+.app--light .engine-message {
+  color: #596579;
 }
 
 .mute-button {

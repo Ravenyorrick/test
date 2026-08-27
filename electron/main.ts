@@ -1,13 +1,14 @@
 import { app, BrowserWindow, globalShortcut, ipcMain, nativeTheme } from "electron";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
+import { AudioController } from "./audio/AudioController.js";
 import { ipcChannels } from "./ipc/channels.js";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
 let mainWindow: BrowserWindow | null = null;
-let emergencyMuted = true;
+const audioController = new AudioController();
 
 function createWindow() {
   mainWindow = new BrowserWindow({
@@ -39,7 +40,7 @@ app.whenReady().then(() => {
 
   const accelerator = process.platform === "darwin" ? "Command+Shift+M" : "Control+Shift+M";
   globalShortcut.register(accelerator, () => {
-    emergencyMuted = true;
+    audioController.mute("Emergency mute shortcut engaged. Virtual microphone output is silence.");
     mainWindow?.webContents.send("voxshift:mute-state", { muted: true });
   });
 
@@ -66,12 +67,27 @@ ipcMain.handle(ipcChannels.appInfo, () => ({
 }));
 
 ipcMain.handle(ipcChannels.diagnosticsSnapshot, () => ({
-  audioEngine: "not-initialized",
+  audioEngine: audioController.getStatus().state,
   virtualMicrophone: "not-installed",
-  safetyGate: emergencyMuted ? "muted" : "muted"
+  safetyGate: audioController.getStatus().muted ? "muted" : "ready"
 }));
 
-ipcMain.handle(ipcChannels.emergencyMute, () => {
-  emergencyMuted = true;
-  return { muted: true };
+audioController.onStatus((status) => {
+  mainWindow?.webContents.send(ipcChannels.audioStatus, status);
 });
+
+ipcMain.handle(ipcChannels.audioStart, () => audioController.start());
+ipcMain.handle(ipcChannels.audioStop, () => audioController.stop());
+ipcMain.handle(ipcChannels.audioMute, () => audioController.mute());
+ipcMain.handle(ipcChannels.audioUnmute, () => audioController.unmute());
+ipcMain.handle(ipcChannels.audioGetStatus, () => audioController.getStatus());
+ipcMain.handle(ipcChannels.audioGetMetrics, () => audioController.getMetrics());
+ipcMain.handle(ipcChannels.audioSetInputDevice, (_event, deviceId: unknown) => audioController.setInputDevice(deviceId));
+ipcMain.handle(ipcChannels.audioSetVoice, (_event, voiceId: unknown, installed: unknown) =>
+  audioController.setVoice(voiceId, installed)
+);
+ipcMain.handle(ipcChannels.audioSetQuality, (_event, mode: unknown) => audioController.setProcessingMode(mode));
+ipcMain.handle(ipcChannels.audioSetNoiseSuppression, (_event, enabled: unknown) =>
+  audioController.setNoiseSuppression(enabled)
+);
+ipcMain.handle(ipcChannels.audioTest, () => audioController.test());

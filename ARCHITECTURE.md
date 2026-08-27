@@ -10,6 +10,13 @@ VOXSHIFT separates UI, desktop orchestration, audio processing, voice conversion
 - Premium UI shell for Home, Voices, Microphone, Call Mode, Settings, and Diagnostics.
 - Built-in voice metadata only. No voice model assets are fabricated or bundled.
 
+## Backend control correction
+
+- Renderer controls use secure `audio:*` IPC commands.
+- Electron main owns an `AudioController` state machine.
+- UI status is derived from backend state and must not show `LIVE` unless the backend reports `RUNNING`.
+- Native Rust `SafetyOutputGate` primitives enforce silence unless all ready conditions are satisfied.
+
 ## Required production pipeline
 
 Physical Microphone -> Audio Capture -> Noise Suppression -> Voice Conversion -> Post Processing -> Limiter -> Safety Output Gate -> VOXSHIFT Virtual Microphone.

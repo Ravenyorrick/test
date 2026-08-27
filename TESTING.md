@@ -6,9 +6,10 @@
 npm run typecheck
 npm test
 npm run build
+cargo test
 ```
 
-The current tests verify the UI shell exposes safety status, voice categories, and custom voice authorization language.
+The current tests verify the UI shell exposes backend-gated status, voice categories, custom voice authorization language, microphone enumeration, the Electron `AudioController` state machine, and Rust native `SafetyOutputGate` behavior.
 
 ## Future required suites
 

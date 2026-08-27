@@ -14,6 +14,7 @@
     "build:electron": "tsc -p tsconfig.node.json",
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
+    "test:rust": "cargo test",
     "test:watch": "vitest",
     "package:win": "npm run build && electron-builder --win nsis",
     "package:mac": "npm run build && electron-builder --mac dmg"

@@ -3,6 +3,7 @@ import { LevelMeter } from "./components/LevelMeter";
 import { Sidebar } from "./components/Sidebar";
 import { VoiceCard } from "./components/VoiceCard";
 import { builtinVoices } from "./data/voices";
+import { useAudioController } from "./hooks/useAudioController";
 import { useMicrophoneDevices } from "./hooks/useMicrophoneDevices";
 import type { NavigationItem, ThemeMode, VoiceProfile } from "./types/voxshift";
 
@@ -22,10 +23,9 @@ const settingsSections = [
 export function App() {
   const [activePage, setActivePage] = useState<NavigationItem>("home");
   const [theme, setTheme] = useState<ThemeMode>("dark");
-  const [voiceActive, setVoiceActive] = useState(false);
-  const [muted, setMuted] = useState(true);
   const [selectedVoice, setSelectedVoice] = useState<VoiceProfile>(builtinVoices[0]);
   const [version, setVersion] = useState("0.1.0");
+  const audio = useAudioController();
   const {
     devices,
     selectedDevice,
@@ -48,10 +48,30 @@ export function App() {
   );
   const maleVoices = useMemo(() => builtinVoices.filter((voice) => voice.category === "American Male"), []);
 
+  async function handleVoicePower() {
+    if (audio.status.live) {
+      await audio.stop();
+      return;
+    }
+
+    await audio.start();
+  }
+
   async function handleEmergencyMute() {
-    await window.voxshift?.emergencyMute();
-    setMuted(true);
-    setVoiceActive(false);
+    await audio.mute();
+  }
+
+  async function handleVoiceSelect(nextVoice: VoiceProfile) {
+    const result = await audio.setVoice(nextVoice.id, nextVoice.installed);
+
+    if (result?.ok) {
+      setSelectedVoice(nextVoice);
+    }
+  }
+
+  async function handleMicrophoneSelect(deviceId: string) {
+    selectDevice(deviceId);
+    await audio.setInputDevice(deviceId);
   }
 
   return (
@@ -65,8 +85,8 @@ export function App() {
           </div>
           <div className="topbar__actions">
             <span className="system-status">
-              <span className="status-dot status-dot--muted" />
-              Safety gate muted
+              <span className={audio.status.live ? "status-dot status-dot--live" : "status-dot status-dot--muted"} />
+              {audio.status.live ? "LIVE" : audio.status.state}
             </span>
             <button className="icon-button" onClick={() => setTheme(theme === "dark" ? "light" : "dark")} type="button">
               {theme === "dark" ? "Light" : "Dark"}
@@ -79,7 +99,7 @@ export function App() {
             <div className="hero-card">
               <div className="hero-card__header">
                 <span className="section-label">Voice</span>
-                <span className="pill">Provider-ready metadata</span>
+                <span className="pill">{audio.status.voiceId ? "Backend voice loaded" : "No model loaded"}</span>
               </div>
               <div className="selected-voice">
                 <div className="selected-voice__glyph" aria-hidden="true">
@@ -93,7 +113,7 @@ export function App() {
                 </div>
               </div>
               <div className="hero-card__actions">
-                <button disabled type="button" title="Preview becomes available after a licensed model is installed">
+                <button onClick={() => void audio.test()} type="button">
                   Preview Voice
                 </button>
                 <button onClick={() => setActivePage("voices")} type="button">
@@ -121,33 +141,34 @@ export function App() {
                   Change
                 </button>
               </div>
-              <LevelMeter label="Input" value={null} muted={muted} />
-              <LevelMeter label="Output" value={null} muted={muted} />
+              <LevelMeter label="Input" value={audio.metrics.inputLevel} muted={audio.status.muted} />
+              <LevelMeter label="Output" value={audio.metrics.outputLevel} muted={audio.status.muted} />
             </div>
 
             <div className="control-card">
               <span className="section-label">Voice Conversion</span>
               <button
-                className={voiceActive ? "power-button power-button--on" : "power-button"}
-                disabled
+                className={audio.status.live ? "power-button power-button--on" : "power-button"}
+                onClick={handleVoicePower}
                 type="button"
-                title="Activation is locked until the audio engine, voice engine, and virtual microphone are implemented"
+                title="Starts the backend audio pipeline; it reports NOT READY until native prerequisites exist"
               >
-                <span>{voiceActive ? "ON" : "OFF"}</span>
-                <strong>{voiceActive ? "VOICE ACTIVE" : "SAFETY MUTED"}</strong>
+                <span>{audio.status.live ? "ON" : "OFF"}</span>
+                <strong>{audio.status.live ? "VOICE ACTIVE" : "NOT READY"}</strong>
               </button>
+              <p className="engine-message">{audio.lastError ?? audio.status.message}</p>
               <div className="metrics">
                 <div>
                   <span>Latency</span>
-                  <strong>Not measured</strong>
+                  <strong>{audio.metrics.totalLatencyMs === null ? "Not measured" : `${audio.metrics.totalLatencyMs} ms`}</strong>
                 </div>
                 <div>
                   <span>CPU</span>
-                  <strong>Awaiting engine</strong>
+                  <strong>{audio.metrics.cpuPercent === null ? "Awaiting engine" : `${audio.metrics.cpuPercent}%`}</strong>
                 </div>
                 <div>
                   <span>Quality</span>
-                  <strong>No score</strong>
+                  <strong>{audio.status.rawBypassBlocked ? "Bypass blocked" : "Unsafe"}</strong>
                 </div>
               </div>
               <button className="mute-button" onClick={handleEmergencyMute} type="button">
@@ -184,7 +205,8 @@ export function App() {
               {femaleVoices.map((voice) => (
                 <VoiceCard
                   key={voice.id}
-                  onSelect={(nextVoice) => setSelectedVoice(nextVoice)}
+                  onSelect={(nextVoice) => void handleVoiceSelect(nextVoice)}
+                  onPreview={() => void audio.test()}
                   selected={selectedVoice.id === voice.id}
                   voice={voice}
                 />
@@ -195,7 +217,8 @@ export function App() {
               {maleVoices.map((voice) => (
                 <VoiceCard
                   key={voice.id}
-                  onSelect={(nextVoice) => setSelectedVoice(nextVoice)}
+                  onSelect={(nextVoice) => void handleVoiceSelect(nextVoice)}
+                  onPreview={() => void audio.test()}
                   selected={selectedVoice.id === voice.id}
                   voice={voice}
                 />
@@ -254,7 +277,7 @@ export function App() {
                       <dd>{device.connectionType}</dd>
                     </div>
                   </dl>
-                  <button onClick={() => selectDevice(device.id)} type="button">
+                  <button onClick={() => void handleMicrophoneSelect(device.id)} type="button">
                     {device.status === "selected" ? "Selected" : "Select"}
                   </button>
                 </article>
@@ -312,12 +335,22 @@ export function App() {
             <p className="eyebrow">Diagnostics</p>
             <h2>System diagnostics foundation</h2>
             <div className="diagnostic-grid">
-              {["Audio Engine", "Voice Model", "Virtual Microphone", "Safety Gate"].map((item) => (
-                <div key={item}>
-                  <span>{item}</span>
-                  <strong>{item === "Safety Gate" ? "MUTED" : "Not initialized"}</strong>
-                </div>
-              ))}
+              <div>
+                <span>Audio Engine</span>
+                <strong>{audio.status.state}</strong>
+              </div>
+              <div>
+                <span>Voice Model</span>
+                <strong>{audio.status.voiceId ? "Loaded" : "Not loaded"}</strong>
+              </div>
+              <div>
+                <span>Virtual Microphone</span>
+                <strong>{audio.status.virtualMicrophoneReady ? "Ready" : "Not installed"}</strong>
+              </div>
+              <div>
+                <span>Raw Input {"->"} Virtual Mic</span>
+                <strong>{audio.status.rawBypassBlocked ? "BLOCKED" : "UNSAFE"}</strong>
+              </div>
             </div>
           </section>
         )}

@@ -4,9 +4,10 @@ type VoiceCardProps = {
   voice: VoiceProfile;
   selected?: boolean;
   onSelect: (voice: VoiceProfile) => void;
+  onPreview: (voice: VoiceProfile) => void;
 };
 
-export function VoiceCard({ voice, selected = false, onSelect }: VoiceCardProps) {
+export function VoiceCard({ voice, selected = false, onPreview, onSelect }: VoiceCardProps) {
   return (
     <article className={selected ? "voice-card voice-card--selected" : "voice-card"}>
       <div className="voice-card__glyph" aria-hidden="true">
@@ -33,7 +34,7 @@ export function VoiceCard({ voice, selected = false, onSelect }: VoiceCardProps)
         </div>
       </dl>
       <div className="voice-card__actions">
-        <button type="button" disabled={!voice.installed} title="Preview requires an installed licensed voice model">
+        <button type="button" onClick={() => onPreview(voice)}>
           Preview
         </button>
         <button type="button" onClick={() => onSelect(voice)}>

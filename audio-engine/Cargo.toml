@@ -1,0 +1,11 @@
+[package]
+name = "voxshift-audio-engine"
+version = "0.1.0"
+edition = "2021"
+license = "UNLICENSED"
+
+[lib]
+name = "voxshift_audio_engine"
+path = "src/lib.rs"
+
+[dependencies]
