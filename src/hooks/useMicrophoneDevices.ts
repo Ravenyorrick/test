@@ -53,22 +53,6 @@ export function useMicrophoneDevices() {
     void refresh();
   }, [refresh]);
 
-  useEffect(() => {
-    if (!navigator.mediaDevices?.addEventListener) {
-      return undefined;
-    }
-
-    const handleDeviceChange = () => {
-      void refresh();
-    };
-
-    navigator.mediaDevices.addEventListener("devicechange", handleDeviceChange);
-
-    return () => {
-      navigator.mediaDevices.removeEventListener("devicechange", handleDeviceChange);
-    };
-  }, [refresh]);
-
   const selectedDevice = useMemo(
     () => devices.find((device) => device.id === selectedDeviceId) ?? null,
     [devices, selectedDeviceId]

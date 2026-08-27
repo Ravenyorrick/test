@@ -33,34 +33,23 @@ export function storeMicrophoneId(deviceId: string) {
 }
 
 export async function requestMicrophoneDeviceLabels() {
-  if (!navigator.mediaDevices?.getUserMedia) {
-    throw new Error("Microphone permissions are not available in this environment.");
-  }
-
-  const stream = await navigator.mediaDevices.getUserMedia({
-    audio: true,
-    video: false
-  });
-
-  stream.getTracks().forEach((track) => track.stop());
+  await enumerateMicrophones(getStoredMicrophoneId());
 }
 
 export async function enumerateMicrophones(selectedDeviceId: string | null): Promise<MicrophoneDevice[]> {
-  if (!navigator.mediaDevices?.enumerateDevices) {
-    throw new Error("Media device enumeration is not available in this environment.");
+  if (!window.voxshift?.audio.getDevices) {
+    throw new Error("Native audio device enumeration is not available.");
   }
 
-  const devices = await navigator.mediaDevices.enumerateDevices();
+  const devices = await window.voxshift.audio.getDevices();
 
-  return devices
-    .filter((device) => device.kind === "audioinput")
-    .map((device, index) => ({
-      id: device.deviceId,
-      groupId: device.groupId,
-      label: device.label || `Microphone ${index + 1}`,
-      inputChannels: "Reported by native audio engine in Phase 3",
-      sampleRate: "Reported by native audio engine in Phase 3",
-      connectionType: inferConnectionType(device.label),
-      status: device.deviceId === selectedDeviceId ? "selected" : "available"
-    }));
+  return devices.map((device) => ({
+    id: device.id,
+    groupId: device.id,
+    label: device.name,
+    inputChannels: `${device.input_channels}`,
+    sampleRate: `${device.preferred_sample_rate_hz} Hz`,
+    connectionType: inferConnectionType(device.name),
+    status: device.id === selectedDeviceId ? "selected" : "available"
+  }));
 }

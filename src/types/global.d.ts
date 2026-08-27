@@ -57,6 +57,13 @@ type AudioCommandResult = {
   error?: string;
 };
 
+type NativeAudioDeviceInfo = {
+  id: string;
+  name: string;
+  input_channels: number;
+  preferred_sample_rate_hz: number;
+};
+
 type VoxshiftApi = {
   getAppInfo: () => Promise<VoxshiftAppInfo>;
   getDiagnosticsSnapshot: () => Promise<VoxshiftDiagnosticsSnapshot>;
@@ -67,6 +74,7 @@ type VoxshiftApi = {
     unmute: () => Promise<AudioCommandResult>;
     getStatus: () => Promise<AudioStatus>;
     getMetrics: () => Promise<AudioMetrics>;
+    getDevices: () => Promise<NativeAudioDeviceInfo[]>;
     setInputDevice: (deviceId: string) => Promise<AudioCommandResult>;
     setVoice: (voiceId: string, installed: boolean) => Promise<AudioCommandResult>;
     setQuality: (mode: ProcessingMode) => Promise<AudioCommandResult>;
@@ -87,6 +95,7 @@ export type {
   AudioMetrics,
   AudioPipelineState,
   AudioStatus,
+  NativeAudioDeviceInfo,
   ProcessingMode,
   VoxshiftApi,
   VoxshiftAppInfo,

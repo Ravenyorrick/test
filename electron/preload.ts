@@ -1,5 +1,6 @@
 import { contextBridge, ipcRenderer } from "electron";
 import type { AudioCommandResult, AudioMetrics, AudioStatus, ProcessingMode } from "./audio/AudioController.js";
+import type { NativeAudioDeviceInfo } from "./audio/NativeAudioBridge.js";
 import { ipcChannels } from "./ipc/channels.js";
 
 export type VoxshiftAppInfo = {
@@ -23,6 +24,7 @@ export type VoxshiftApi = {
     unmute: () => Promise<AudioCommandResult>;
     getStatus: () => Promise<AudioStatus>;
     getMetrics: () => Promise<AudioMetrics>;
+    getDevices: () => Promise<NativeAudioDeviceInfo[]>;
     setInputDevice: (deviceId: string) => Promise<AudioCommandResult>;
     setVoice: (voiceId: string, installed: boolean) => Promise<AudioCommandResult>;
     setQuality: (mode: ProcessingMode) => Promise<AudioCommandResult>;
@@ -42,6 +44,7 @@ const api: VoxshiftApi = {
     unmute: () => ipcRenderer.invoke(ipcChannels.audioUnmute),
     getStatus: () => ipcRenderer.invoke(ipcChannels.audioGetStatus),
     getMetrics: () => ipcRenderer.invoke(ipcChannels.audioGetMetrics),
+    getDevices: () => ipcRenderer.invoke(ipcChannels.audioGetDevices),
     setInputDevice: (deviceId) => ipcRenderer.invoke(ipcChannels.audioSetInputDevice, deviceId),
     setVoice: (voiceId, installed) => ipcRenderer.invoke(ipcChannels.audioSetVoice, voiceId, installed),
     setQuality: (mode) => ipcRenderer.invoke(ipcChannels.audioSetQuality, mode),

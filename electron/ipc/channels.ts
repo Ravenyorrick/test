@@ -12,6 +12,7 @@ export const ipcChannels = {
   audioSetQuality: "voxshift:audio:set-quality",
   audioSetNoiseSuppression: "voxshift:audio:set-noise-suppression",
   audioTest: "voxshift:audio:test",
+  audioGetDevices: "voxshift:audio:get-devices",
   audioStatus: "voxshift:audio:status",
   audioMetrics: "voxshift:audio:metrics",
   audioError: "voxshift:audio:error"

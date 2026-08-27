@@ -2,6 +2,7 @@ import { app, BrowserWindow, globalShortcut, ipcMain, nativeTheme } from "electr
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { AudioController } from "./audio/AudioController.js";
+import { NativeAudioBridge } from "./audio/NativeAudioBridge.js";
 import { ipcChannels } from "./ipc/channels.js";
 
 const __filename = fileURLToPath(import.meta.url);
@@ -9,6 +10,7 @@ const __dirname = path.dirname(__filename);
 
 let mainWindow: BrowserWindow | null = null;
 const audioController = new AudioController();
+const nativeAudioBridge = new NativeAudioBridge();
 
 function createWindow() {
   mainWindow = new BrowserWindow({
@@ -82,6 +84,7 @@ ipcMain.handle(ipcChannels.audioMute, () => audioController.mute());
 ipcMain.handle(ipcChannels.audioUnmute, () => audioController.unmute());
 ipcMain.handle(ipcChannels.audioGetStatus, () => audioController.getStatus());
 ipcMain.handle(ipcChannels.audioGetMetrics, () => audioController.getMetrics());
+ipcMain.handle(ipcChannels.audioGetDevices, () => nativeAudioBridge.enumerateDevices());
 ipcMain.handle(ipcChannels.audioSetInputDevice, (_event, deviceId: unknown) => audioController.setInputDevice(deviceId));
 ipcMain.handle(ipcChannels.audioSetVoice, (_event, voiceId: unknown, installed: unknown) =>
   audioController.setVoice(voiceId, installed)

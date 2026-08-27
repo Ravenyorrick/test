@@ -1,13 +1,21 @@
+use std::sync::{
+    atomic::{AtomicBool, AtomicU32, AtomicU64, Ordering},
+    Arc,
+};
 use std::time::Duration;
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+use cpal::traits::{DeviceTrait, HostTrait, StreamTrait};
+use crossbeam_channel::{bounded, Receiver, Sender, TryRecvError};
+use serde::Serialize;
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize)]
 pub enum SafetyGateState {
     Muted,
     Processing,
     Ready,
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize)]
 pub enum EngineState {
     Stopped,
     Initializing,
@@ -21,14 +29,14 @@ pub enum EngineState {
     ProcessingTooSlow,
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize)]
 pub enum ProcessingMode {
     LowLatency,
     Balanced,
     HighQuality,
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Serialize)]
 pub struct AudioFrame {
     pub samples: Vec<f32>,
     pub sample_rate_hz: u32,
@@ -58,14 +66,14 @@ impl AudioFrame {
     }
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Serialize)]
 pub struct OutputFrame {
     pub frame: AudioFrame,
     pub processing_time: Duration,
     pub safety_gate_state: SafetyGateState,
 }
 
-#[derive(Debug, Clone, Copy, Default)]
+#[derive(Debug, Clone, Copy, Default, Serialize)]
 pub struct EngineMetrics {
     pub input_level: f32,
     pub output_level: f32,
@@ -98,6 +106,414 @@ pub enum VoiceConversionError {
     ModelUnavailable,
     ProcessingFailed,
     ProcessingTooSlow,
+}
+
+#[derive(Debug, Clone, Serialize)]
+pub struct NativeAudioDevice {
+    pub id: String,
+    pub name: String,
+    pub input_channels: u16,
+    pub preferred_sample_rate_hz: u32,
+}
+
+#[derive(Debug, Clone, Copy, Default, Serialize)]
+pub struct CaptureMetrics {
+    pub rms: f32,
+    pub peak: f32,
+    pub frames_captured: u64,
+    pub dropped_frames: u64,
+    pub device_errors: u64,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize)]
+pub enum CaptureError {
+    DeviceEnumerationFailed,
+    DeviceNotFound,
+    DefaultConfigUnavailable,
+    BuildStreamFailed,
+    StreamStartFailed,
+    StreamNotOpen,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize)]
+pub enum CaptureStatus {
+    Uninitialized,
+    Initialized,
+    DeviceOpen,
+    Running,
+    Stopped,
+    DeviceError,
+}
+
+#[derive(Debug)]
+struct SharedCaptureMetrics {
+    rms_bits: AtomicU32,
+    peak_bits: AtomicU32,
+    frames_captured: AtomicU64,
+    dropped_frames: AtomicU64,
+    device_errors: AtomicU64,
+}
+
+impl SharedCaptureMetrics {
+    fn new() -> Self {
+        Self {
+            rms_bits: AtomicU32::new(0.0_f32.to_bits()),
+            peak_bits: AtomicU32::new(0.0_f32.to_bits()),
+            frames_captured: AtomicU64::new(0),
+            dropped_frames: AtomicU64::new(0),
+            device_errors: AtomicU64::new(0),
+        }
+    }
+
+    fn update_levels(&self, samples: &[f32]) {
+        let sum_squares = samples.iter().map(|sample| sample * sample).sum::<f32>();
+        let rms = if samples.is_empty() {
+            0.0
+        } else {
+            (sum_squares / samples.len() as f32).sqrt().clamp(0.0, 1.0)
+        };
+        let peak = samples
+            .iter()
+            .fold(0.0_f32, |current, sample| current.max(sample.abs()))
+            .clamp(0.0, 1.0);
+
+        self.rms_bits.store(rms.to_bits(), Ordering::Relaxed);
+        self.peak_bits.store(peak.to_bits(), Ordering::Relaxed);
+        self.frames_captured.fetch_add(1, Ordering::Relaxed);
+    }
+
+    fn mark_drop(&self) {
+        self.dropped_frames.fetch_add(1, Ordering::Relaxed);
+    }
+
+    fn mark_device_error(&self) {
+        self.device_errors.fetch_add(1, Ordering::Relaxed);
+    }
+
+    fn snapshot(&self) -> CaptureMetrics {
+        CaptureMetrics {
+            rms: f32::from_bits(self.rms_bits.load(Ordering::Relaxed)),
+            peak: f32::from_bits(self.peak_bits.load(Ordering::Relaxed)),
+            frames_captured: self.frames_captured.load(Ordering::Relaxed),
+            dropped_frames: self.dropped_frames.load(Ordering::Relaxed),
+            device_errors: self.device_errors.load(Ordering::Relaxed),
+        }
+    }
+}
+
+pub struct NativeAudioCapture {
+    status: CaptureStatus,
+    selected_device_id: Option<String>,
+    stream: Option<cpal::Stream>,
+    frame_sender: Sender<AudioFrame>,
+    frame_receiver: Receiver<AudioFrame>,
+    metrics: Arc<SharedCaptureMetrics>,
+    running: Arc<AtomicBool>,
+}
+
+impl Default for NativeAudioCapture {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
+impl NativeAudioCapture {
+    pub fn new() -> Self {
+        let (frame_sender, frame_receiver) = bounded(8);
+
+        Self {
+            status: CaptureStatus::Uninitialized,
+            selected_device_id: None,
+            stream: None,
+            frame_sender,
+            frame_receiver,
+            metrics: Arc::new(SharedCaptureMetrics::new()),
+            running: Arc::new(AtomicBool::new(false)),
+        }
+    }
+
+    pub fn initialize(&mut self) -> Result<(), CaptureError> {
+        let _ = cpal::default_host();
+        self.status = CaptureStatus::Initialized;
+        Ok(())
+    }
+
+    pub fn enumerate_devices(&self) -> Result<Vec<NativeAudioDevice>, CaptureError> {
+        enumerate_input_devices()
+    }
+
+    pub fn get_devices(&self) -> Result<Vec<NativeAudioDevice>, CaptureError> {
+        self.enumerate_devices()
+    }
+
+    pub fn open_device(&mut self, device_id: &str) -> Result<(), CaptureError> {
+        let host = cpal::default_host();
+        let (device, native_device) = find_input_device(&host, device_id)?;
+        let supported_config = select_input_config(&device)?;
+        let sample_format = supported_config.sample_format();
+        let stream_config = supported_config.config();
+        let channels = stream_config.channels;
+        let sample_rate_hz = stream_config.sample_rate;
+        let frame_sender = self.frame_sender.clone();
+        let metrics = Arc::clone(&self.metrics);
+        let running = Arc::clone(&self.running);
+        let error_metrics = Arc::clone(&self.metrics);
+        let error_callback = move |_error| {
+            error_metrics.mark_device_error();
+        };
+
+        let stream = match sample_format {
+            cpal::SampleFormat::F32 => build_input_stream::<f32>(
+                &device,
+                &stream_config,
+                channels,
+                sample_rate_hz,
+                frame_sender,
+                metrics,
+                running,
+                error_callback,
+            ),
+            cpal::SampleFormat::I16 => build_input_stream::<i16>(
+                &device,
+                &stream_config,
+                channels,
+                sample_rate_hz,
+                frame_sender,
+                metrics,
+                running,
+                error_callback,
+            ),
+            cpal::SampleFormat::U16 => build_input_stream::<u16>(
+                &device,
+                &stream_config,
+                channels,
+                sample_rate_hz,
+                frame_sender,
+                metrics,
+                running,
+                error_callback,
+            ),
+            _ => Err(cpal::BuildStreamError::StreamConfigNotSupported),
+        }
+        .map_err(|_| CaptureError::BuildStreamFailed)?;
+
+        self.stream = Some(stream);
+        self.selected_device_id = Some(native_device.id);
+        self.status = CaptureStatus::DeviceOpen;
+        Ok(())
+    }
+
+    pub fn start(&mut self) -> Result<(), CaptureError> {
+        let stream = self.stream.as_ref().ok_or(CaptureError::StreamNotOpen)?;
+        self.running.store(true, Ordering::SeqCst);
+        stream.play().map_err(|_| CaptureError::StreamStartFailed)?;
+        self.status = CaptureStatus::Running;
+        Ok(())
+    }
+
+    pub fn stop(&mut self) {
+        self.running.store(false, Ordering::SeqCst);
+        if matches!(self.status, CaptureStatus::Running) {
+            self.status = CaptureStatus::Stopped;
+        }
+    }
+
+    pub fn close(&mut self) {
+        self.stop();
+        self.stream = None;
+        self.selected_device_id = None;
+        self.status = CaptureStatus::Initialized;
+    }
+
+    pub fn get_status(&self) -> CaptureStatus {
+        if self.metrics.snapshot().device_errors > 0 {
+            return CaptureStatus::DeviceError;
+        }
+
+        self.status
+    }
+
+    pub fn get_metrics(&self) -> CaptureMetrics {
+        self.metrics.snapshot()
+    }
+
+    pub fn try_next_frame(&self) -> Option<AudioFrame> {
+        match self.frame_receiver.try_recv() {
+            Ok(frame) => Some(frame),
+            Err(TryRecvError::Empty | TryRecvError::Disconnected) => None,
+        }
+    }
+}
+
+pub fn enumerate_input_devices() -> Result<Vec<NativeAudioDevice>, CaptureError> {
+    let host = cpal::default_host();
+    let devices = host
+        .input_devices()
+        .map_err(|_| CaptureError::DeviceEnumerationFailed)?;
+
+    let mut native_devices = Vec::new();
+
+    for (index, device) in devices.enumerate() {
+        let name = device_display_name(&device, index);
+        let id = device_stable_id(&device, index, &name);
+        let preferred_config = select_input_config(&device).ok();
+        let input_channels = preferred_config
+            .as_ref()
+            .map(|config| config.channels())
+            .unwrap_or(1);
+        let preferred_sample_rate_hz = preferred_config
+            .as_ref()
+            .map(|config| config.sample_rate())
+            .unwrap_or(48_000);
+
+        native_devices.push(NativeAudioDevice {
+            id,
+            name,
+            input_channels,
+            preferred_sample_rate_hz,
+        });
+    }
+
+    Ok(native_devices)
+}
+
+fn find_input_device(
+    host: &cpal::Host,
+    device_id: &str,
+) -> Result<(cpal::Device, NativeAudioDevice), CaptureError> {
+    let devices = host
+        .input_devices()
+        .map_err(|_| CaptureError::DeviceEnumerationFailed)?;
+
+    for (index, device) in devices.enumerate() {
+        let name = device_display_name(&device, index);
+        let id = device_stable_id(&device, index, &name);
+
+        if id == device_id {
+            let config = select_input_config(&device)?;
+            return Ok((
+                device,
+                NativeAudioDevice {
+                    id,
+                    name,
+                    input_channels: config.channels(),
+                    preferred_sample_rate_hz: config.sample_rate(),
+                },
+            ));
+        }
+    }
+
+    Err(CaptureError::DeviceNotFound)
+}
+
+fn device_display_name(device: &cpal::Device, index: usize) -> String {
+    device
+        .description()
+        .map(|description| description.name().to_string())
+        .unwrap_or_else(|_| format!("Input Device {}", index + 1))
+}
+
+fn device_stable_id(device: &cpal::Device, index: usize, name: &str) -> String {
+    device
+        .id()
+        .map(|id| id.to_string())
+        .unwrap_or_else(|_| format!("fallback:{index}:{name}"))
+}
+
+fn select_input_config(device: &cpal::Device) -> Result<cpal::SupportedStreamConfig, CaptureError> {
+    let supported_configs = device
+        .supported_input_configs()
+        .map_err(|_| CaptureError::DefaultConfigUnavailable)?;
+
+    for config_range in supported_configs {
+        if config_range.min_sample_rate() <= 48_000 && config_range.max_sample_rate() >= 48_000 {
+            return Ok(config_range.with_sample_rate(48_000));
+        }
+    }
+
+    device
+        .default_input_config()
+        .map_err(|_| CaptureError::DefaultConfigUnavailable)
+}
+
+fn build_input_stream<T>(
+    device: &cpal::Device,
+    stream_config: &cpal::StreamConfig,
+    channels: u16,
+    sample_rate_hz: u32,
+    frame_sender: Sender<AudioFrame>,
+    metrics: Arc<SharedCaptureMetrics>,
+    running: Arc<AtomicBool>,
+    error_callback: impl FnMut(cpal::StreamError) + Send + 'static,
+) -> Result<cpal::Stream, cpal::BuildStreamError>
+where
+    T: cpal::Sample + cpal::SizedSample + Send + 'static,
+    f32: FromSample<T>,
+{
+    device.build_input_stream(
+        stream_config,
+        move |data: &[T], _info: &cpal::InputCallbackInfo| {
+            if !running.load(Ordering::Relaxed) {
+                return;
+            }
+
+            let mono_samples = convert_to_mono(data, channels);
+            metrics.update_levels(&mono_samples);
+
+            let frame = AudioFrame {
+                samples: mono_samples,
+                sample_rate_hz,
+                channels: 1,
+            };
+
+            if frame_sender.try_send(frame).is_err() {
+                metrics.mark_drop();
+            }
+        },
+        error_callback,
+        None,
+    )
+}
+
+trait FromSample<T> {
+    fn from_sample(sample: T) -> f32;
+}
+
+impl FromSample<f32> for f32 {
+    fn from_sample(sample: f32) -> f32 {
+        sample
+    }
+}
+
+impl FromSample<i16> for f32 {
+    fn from_sample(sample: i16) -> f32 {
+        sample as f32 / i16::MAX as f32
+    }
+}
+
+impl FromSample<u16> for f32 {
+    fn from_sample(sample: u16) -> f32 {
+        (sample as f32 - 32768.0) / 32768.0
+    }
+}
+
+fn convert_to_mono<T>(data: &[T], channels: u16) -> Vec<f32>
+where
+    T: Copy,
+    f32: FromSample<T>,
+{
+    let channel_count = usize::from(channels.max(1));
+    let mut mono_samples = Vec::with_capacity(data.len() / channel_count);
+
+    for frame in data.chunks(channel_count) {
+        let sum = frame
+            .iter()
+            .map(|sample| f32::from_sample(*sample))
+            .sum::<f32>();
+        mono_samples.push((sum / frame.len() as f32).clamp(-1.0, 1.0));
+    }
+
+    mono_samples
 }
 
 #[derive(Debug, Clone)]
@@ -265,5 +681,39 @@ mod tests {
         let frame = speech_frame();
 
         assert_eq!(frame.peak_level(), 0.5);
+    }
+
+    #[test]
+    fn native_capture_initializes_without_opening_a_device() {
+        let mut capture = NativeAudioCapture::new();
+
+        capture
+            .initialize()
+            .expect("host initialization should succeed");
+
+        assert_eq!(capture.get_status(), CaptureStatus::Initialized);
+        assert_eq!(capture.get_metrics().frames_captured, 0);
+        assert!(capture.try_next_frame().is_none());
+    }
+
+    #[test]
+    fn mono_conversion_averages_interleaved_channels() {
+        let stereo = vec![0.5_f32, -0.5, 0.25, 0.75];
+
+        let mono = convert_to_mono(&stereo, 2);
+
+        assert_eq!(mono, vec![0.0, 0.5]);
+    }
+
+    #[test]
+    fn capture_metrics_are_derived_from_samples() {
+        let metrics = SharedCaptureMetrics::new();
+
+        metrics.update_levels(&[0.5, -0.25, 0.25, -0.5]);
+        let snapshot = metrics.snapshot();
+
+        assert!(snapshot.rms > 0.39 && snapshot.rms < 0.4);
+        assert_eq!(snapshot.peak, 0.5);
+        assert_eq!(snapshot.frames_captured, 1);
     }
 }
