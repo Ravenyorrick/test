@@ -9,6 +9,7 @@ Core audio, voice conversion, and virtual microphone features are not simulated.
 ## Current phase
 
 - Phase 1: Repository foundation and premium UI shell
+- Phase 2: Microphone device manager foundation
 
 ## Development
 

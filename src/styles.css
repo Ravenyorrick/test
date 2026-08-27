@@ -238,7 +238,9 @@ input:focus-visible,
 .voice-card__actions button,
 .filters button,
 .page-heading button,
-.custom-voice-panel button {
+.custom-voice-panel button,
+.toolbar button,
+.device-card button {
   padding: 11px 14px;
   border-radius: 13px;
   color: inherit;
@@ -252,7 +254,9 @@ input:focus-visible,
 .app--light .voice-card__actions button,
 .app--light .filters button,
 .app--light .page-heading button,
-.app--light .custom-voice-panel button {
+.app--light .custom-voice-panel button,
+.app--light .toolbar button,
+.app--light .device-card button {
   background: rgba(255, 255, 255, 0.74);
   box-shadow: inset 0 0 0 1px rgba(12, 24, 42, 0.08);
 }
@@ -600,6 +604,71 @@ input:focus-visible,
   grid-template-columns: repeat(4, 1fr);
 }
 
+.alert {
+  display: grid;
+  gap: 5px;
+  padding: 16px;
+  border: 1px solid rgba(255, 184, 107, 0.3);
+  border-radius: 18px;
+  background: rgba(255, 184, 107, 0.1);
+}
+
+.alert span {
+  color: #c9d2df;
+}
+
+.app--light .alert span {
+  color: #596579;
+}
+
+.toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.device-list {
+  display: grid;
+  gap: 14px;
+}
+
+.device-card {
+  display: grid;
+  grid-template-columns: 1.1fr 1.5fr auto;
+  align-items: center;
+  gap: 18px;
+  padding: 18px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 22px;
+  background: rgba(255, 255, 255, 0.055);
+}
+
+.app--light .device-card {
+  border-color: rgba(18, 28, 44, 0.08);
+  background: rgba(18, 29, 45, 0.04);
+}
+
+.device-card h3,
+.device-card p,
+.device-card dl {
+  margin: 0;
+}
+
+.device-card p,
+.device-card dt {
+  color: #9aa8ba;
+}
+
+.device-card dl {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 12px;
+}
+
+.device-card dd {
+  margin: 4px 0 0;
+}
+
 @media (max-width: 1120px) {
   .app {
     grid-template-columns: 220px 1fr;
@@ -611,5 +680,9 @@ input:focus-visible,
 
   .hero-card {
     grid-column: auto;
+  }
+
+  .device-card {
+    grid-template-columns: 1fr;
   }
 }

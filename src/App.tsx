@@ -3,6 +3,7 @@ import { LevelMeter } from "./components/LevelMeter";
 import { Sidebar } from "./components/Sidebar";
 import { VoiceCard } from "./components/VoiceCard";
 import { builtinVoices } from "./data/voices";
+import { useMicrophoneDevices } from "./hooks/useMicrophoneDevices";
 import type { NavigationItem, ThemeMode, VoiceProfile } from "./types/voxshift";
 
 const settingsSections = [
@@ -25,6 +26,17 @@ export function App() {
   const [muted, setMuted] = useState(true);
   const [selectedVoice, setSelectedVoice] = useState<VoiceProfile>(builtinVoices[0]);
   const [version, setVersion] = useState("0.1.0");
+  const {
+    devices,
+    selectedDevice,
+    selectedDeviceDisconnected,
+    permissionGranted,
+    error: microphoneError,
+    loading: microphoneLoading,
+    refresh: refreshMicrophones,
+    requestAccess: requestMicrophoneAccess,
+    selectDevice
+  } = useMicrophoneDevices();
 
   useEffect(() => {
     void window.voxshift?.getAppInfo().then((info) => setVersion(info.version));
@@ -94,8 +106,16 @@ export function App() {
               <span className="section-label">Microphone</span>
               <div className="device-row">
                 <div>
-                  <strong>No microphone selected</strong>
-                  <span>Phase 2 will enumerate real input devices using stable identifiers.</span>
+                  <strong>
+                    {selectedDeviceDisconnected
+                      ? "Your selected microphone was disconnected."
+                      : selectedDevice?.label ?? "No microphone selected"}
+                  </strong>
+                  <span>
+                    {selectedDevice
+                      ? `${selectedDevice.connectionType} • stable ID remembered`
+                      : "Select a microphone before the native audio pipeline can activate."}
+                  </span>
                 </div>
                 <button onClick={() => setActivePage("microphone")} type="button">
                   Change
@@ -187,11 +207,59 @@ export function App() {
         {activePage === "microphone" && (
           <section className="page-panel">
             <p className="eyebrow">Microphone</p>
-            <h2>Device manager foundation</h2>
+            <h2>Microphone selector</h2>
             <p className="notice">
-              Real device enumeration begins in Phase 2. Until then, VOXSHIFT keeps the safety gate muted and does not
-              select or transmit any physical microphone.
+              VOXSHIFT enumerates real input devices and remembers the selected device ID. It does not capture or route
+              audio to output in Phase 2.
             </p>
+            {selectedDeviceDisconnected && (
+              <div className="alert" role="alert">
+                <strong>Your selected microphone was disconnected.</strong>
+                <span>VOXSHIFT will not switch to another microphone automatically.</span>
+              </div>
+            )}
+            {microphoneError && (
+              <div className="alert" role="alert">
+                <strong>Microphone error</strong>
+                <span>{microphoneError}</span>
+              </div>
+            )}
+            <div className="toolbar">
+              <button onClick={requestMicrophoneAccess} type="button">
+                {permissionGranted ? "Refresh Permission" : "Allow Microphone Access"}
+              </button>
+              <button onClick={() => void refreshMicrophones()} type="button">
+                {microphoneLoading ? "Refreshing..." : "Refresh Devices"}
+              </button>
+            </div>
+            <div className="device-list">
+              {devices.length === 0 && <p>No microphones reported by the operating system yet.</p>}
+              {devices.map((device) => (
+                <article className="device-card" key={device.id}>
+                  <div>
+                    <h3>{device.label}</h3>
+                    <p>{device.status === "selected" ? "Selected microphone" : "Available input device"}</p>
+                  </div>
+                  <dl>
+                    <div>
+                      <dt>Channels</dt>
+                      <dd>{device.inputChannels}</dd>
+                    </div>
+                    <div>
+                      <dt>Sample rate</dt>
+                      <dd>{device.sampleRate}</dd>
+                    </div>
+                    <div>
+                      <dt>Connection</dt>
+                      <dd>{device.connectionType}</dd>
+                    </div>
+                  </dl>
+                  <button onClick={() => selectDevice(device.id)} type="button">
+                    {device.status === "selected" ? "Selected" : "Select"}
+                  </button>
+                </article>
+              ))}
+            </div>
           </section>
         )}
 

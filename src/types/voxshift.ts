@@ -30,3 +30,13 @@ export type VoiceProfile = {
 export type ThemeMode = "dark" | "light";
 
 export type DeviceStatus = "selected" | "available" | "disconnected";
+
+export type MicrophoneDevice = {
+  id: string;
+  groupId: string;
+  label: string;
+  inputChannels: string;
+  sampleRate: string;
+  connectionType: string;
+  status: DeviceStatus;
+};

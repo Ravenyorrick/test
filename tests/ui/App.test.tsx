@@ -1,8 +1,28 @@
-import { fireEvent, render, screen } from "@testing-library/react";
-import { describe, expect, it } from "vitest";
+import { fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 import { App } from "../../src/App";
 
-describe("VOXSHIFT Phase 1 UI shell", () => {
+const mediaDevicesMock = {
+  enumerateDevices: vi.fn(),
+  getUserMedia: vi.fn(),
+  addEventListener: vi.fn(),
+  removeEventListener: vi.fn()
+};
+
+beforeEach(() => {
+  window.localStorage.clear();
+  mediaDevicesMock.enumerateDevices.mockResolvedValue([]);
+  mediaDevicesMock.getUserMedia.mockResolvedValue({
+    getTracks: () => [{ stop: vi.fn() }]
+  });
+
+  Object.defineProperty(navigator, "mediaDevices", {
+    configurable: true,
+    value: mediaDevicesMock
+  });
+});
+
+describe("VOXSHIFT UI shell", () => {
   it("shows primary safety and audio status on the home screen", () => {
     render(<App />);
 
@@ -35,5 +55,35 @@ describe("VOXSHIFT Phase 1 UI shell", () => {
       screen.getByLabelText("I confirm that I own this voice recording or have permission to use it.")
     ).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Create Voice Profile" })).toBeDisabled();
+  });
+
+  it("enumerates and selects real browser audio input devices", async () => {
+    mediaDevicesMock.enumerateDevices.mockResolvedValue([
+      {
+        deviceId: "usb-mic-1",
+        groupId: "usb-group",
+        kind: "audioinput",
+        label: "USB Microphone",
+        toJSON: () => ({})
+      },
+      {
+        deviceId: "camera-1",
+        groupId: "camera-group",
+        kind: "videoinput",
+        label: "Webcam",
+        toJSON: () => ({})
+      }
+    ]);
+
+    render(<App />);
+
+    fireEvent.click(screen.getByRole("button", { name: "Microphone" }));
+
+    expect(await screen.findByText("USB Microphone")).toBeInTheDocument();
+    expect(screen.queryByText("Webcam")).not.toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole("button", { name: "Select" }));
+
+    await waitFor(() => expect(window.localStorage.getItem("voxshift:selected-microphone-id")).toBe("usb-mic-1"));
   });
 });
